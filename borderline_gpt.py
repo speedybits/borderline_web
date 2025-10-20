@@ -95,15 +95,16 @@ class GameBoard:
             return self.grid[row][col]
         return None
     
-    def display(self):
+    def display(self, highlight_pos=None):
+        """Display the board, optionally highlighting a newly placed piece at highlight_pos (row, col)"""
         result = ""
-        
+
         for board_row in range(self.height):
             # Top border for each row of squares
             for board_col in range(self.width):
                 result += " ____"
             result += "\n"
-            
+
             # Display each of the 3 pip rows for this board row
             for pip_row in range(3):
                 for board_col in range(self.width):
@@ -111,15 +112,25 @@ class GameBoard:
                     if piece is None:
                         result += "|_|_|_|"
                     else:
-                        row_content = "|" + "|".join(piece.pips[pip_row]) + "|"
+                        # Check if this is the highlighted piece
+                        is_highlighted = highlight_pos and highlight_pos == (board_row, board_col)
+
+                        # Build row content with lowercase for highlighted pieces
+                        row_pips = []
+                        for pip in piece.pips[pip_row]:
+                            if is_highlighted and pip in ['R', 'B']:
+                                row_pips.append(pip.lower())
+                            else:
+                                row_pips.append(pip)
+                        row_content = "|" + "|".join(row_pips) + "|"
                         result += row_content
                 result += "\n"
-        
+
         # Final bottom border
         for board_col in range(self.width):
             result += " ____"
         result += "\n"
-        
+
         return result
     
     def get_adjacent_positions(self, row, col):
@@ -477,6 +488,7 @@ class BorderlineGPT:
         self.turn_count = 0
         self.game_over = False
         self.winner = None
+        self.last_placed_pos = None  # Track last placed piece for highlighting
     
     def switch_player(self):
         self.current_player = self.blue_player if self.current_player == self.red_player else self.red_player
@@ -519,7 +531,10 @@ class BorderlineGPT:
         # Place piece
         self.board.place_piece(piece, row, col)
         print(f"{self.current_player.name} places piece at ({row}, {col})")
-        
+
+        # Track this position for highlighting
+        self.last_placed_pos = (row, col)
+
         # Handle combat
         if adjacent_pips:
             combats = self.board.resolve_combat(adjacent_pips)
@@ -531,6 +546,8 @@ class BorderlineGPT:
                     if lost_piece:
                         self.current_player.add_piece_back(lost_piece)
                         print(f"{self.current_player.name} loses combat and piece is returned!")
+                        # Clear highlight since piece was removed
+                        self.last_placed_pos = None
                 else:
                     # Opponent loses, remove their piece
                     loser_row, loser_col = combat['existing_piece_pos']
@@ -539,20 +556,20 @@ class BorderlineGPT:
                         loser_player = self.red_player if lost_piece.player_color == 'R' else self.blue_player
                         loser_player.add_piece_back(lost_piece)
                         print(f"Opponent loses combat and their piece is returned!")
-        
+
         # Check victory
         if self.board.check_victory(self.current_player.color):
             self.winner = self.current_player
             self.game_over = True
             print(f"\n🎉 VICTORY! {self.current_player.name} wins! 🎉")
             return
-        
+
         self.switch_player()
         self.turn_count += 1
     
     def display_game_state(self):
         """Display the complete game state including board and remaining pieces"""
-        print(self.board.display())
+        print(self.board.display(highlight_pos=self.last_placed_pos))
         print(self.red_player.display_remaining_pieces())
         print(self.blue_player.display_remaining_pieces())
     
