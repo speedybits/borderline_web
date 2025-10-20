@@ -95,9 +95,16 @@ class GameBoard:
             return self.grid[row][col]
         return None
     
-    def display(self, highlight_pos=None):
-        """Display the board, optionally highlighting a newly placed piece at highlight_pos (row, col)"""
+    def display(self, highlight_positions=None):
+        """Display the board, optionally highlighting pieces at highlight_positions (list of (row, col) tuples)"""
         result = ""
+
+        # Convert single position to list for backward compatibility
+        if highlight_positions is not None and not isinstance(highlight_positions, list):
+            highlight_positions = [highlight_positions]
+
+        # Create set for faster lookup
+        highlight_set = set(highlight_positions) if highlight_positions else set()
 
         for board_row in range(self.height):
             # Top border for each row of squares
@@ -112,8 +119,8 @@ class GameBoard:
                     if piece is None:
                         result += "|_|_|_|"
                     else:
-                        # Check if this is the highlighted piece
-                        is_highlighted = highlight_pos and highlight_pos == (board_row, board_col)
+                        # Check if this piece should be highlighted
+                        is_highlighted = (board_row, board_col) in highlight_set
 
                         # Build row content with lowercase for highlighted pieces
                         row_pips = []
@@ -539,7 +546,14 @@ class BorderlineGPT:
         if adjacent_pips:
             combats = self.board.resolve_combat(adjacent_pips)
             for combat in combats:
+                # Get positions of both combatants
+                attacker_pos = combat['new_piece_pos']
+                defender_pos = combat['existing_piece_pos']
+
+                # Show both pieces highlighted during combat
                 print(f"COMBAT! Red rolls {combat['red_roll']}, Blue rolls {combat['blue_roll']}")
+                print(self.board.display(highlight_positions=[attacker_pos, defender_pos]))
+
                 if combat['winner'] != self.current_player.color:
                     # Current player loses, remove their piece
                     lost_piece = self.board.remove_piece(row, col)
@@ -569,7 +583,7 @@ class BorderlineGPT:
     
     def display_game_state(self):
         """Display the complete game state including board and remaining pieces"""
-        print(self.board.display(highlight_pos=self.last_placed_pos))
+        print(self.board.display(highlight_positions=self.last_placed_pos))
         print(self.red_player.display_remaining_pieces())
         print(self.blue_player.display_remaining_pieces())
     
