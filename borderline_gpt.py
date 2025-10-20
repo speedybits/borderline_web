@@ -618,22 +618,23 @@ class BorderlineGPT:
             print(self.board.display(highlight_positions=highlight_positions))
 
             if combat['winner'] != self.current_player.color:
-                # Attacker loses - piece is converted to defender's color
-                attacking_piece = self.board.get_piece(row, col)
+                # Attacker loses - remove piece from board, convert it, and give to defender
+                attacking_piece = self.board.remove_piece(row, col)
                 if attacking_piece:
                     attacking_piece.convert_to_color(combat['defender_color'])
                     # Give the converted piece to the winning player
                     winner_player = self.red_player if combat['defender_color'] == 'R' else self.blue_player
-                    # Remove from current player's count (it's already on the board)
+                    winner_player.add_piece_back(attacking_piece)
                     print(f"{self.current_player.name} loses combat! Piece is captured and converted to {combat['defender_color']}!")
-                    # Clear highlight since piece changed ownership
+                    # Clear highlight since piece was removed
                     self.last_placed_pos = None
             else:
-                # Defender(s) lose - all defending pieces are converted to attacker's color
+                # Defender(s) lose - remove all defending pieces, convert them, and give to attacker
                 for defender in combat['defenders']:
-                    defending_piece = self.board.get_piece(defender['row'], defender['col'])
+                    defending_piece = self.board.remove_piece(defender['row'], defender['col'])
                     if defending_piece:
                         defending_piece.convert_to_color(combat['attacker_color'])
+                        self.current_player.add_piece_back(defending_piece)
 
                 if len(combat['defenders']) > 1:
                     print(f"All {len(combat['defenders'])} defending pieces are captured and converted to {combat['attacker_color']}!")
