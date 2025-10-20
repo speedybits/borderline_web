@@ -617,36 +617,29 @@ class AggressiveConnectorAI(AIPlayer):
         if temp_board.check_victory(self.color):
             score += 10000
 
-        # Priority 2: Vertical progress (massive bonus for moving toward goal)
+        # GEN 4-10: Continued refinement - Red keeps winning
+        # Final optimized values through evolution
         if self.color == 'R':
-            # Red wants to reach row 7 (bottom)
-            vertical_progress = row  # Higher row = better (0->7)
-            score += vertical_progress * 50
+            vertical_progress = row
+            score += vertical_progress * 70
         else:
-            # Blue wants to reach row 0 (top)
-            vertical_progress = 7 - row  # Lower row = better (7->0)
-            score += vertical_progress * 50
+            vertical_progress = 7 - row
+            score += vertical_progress * 70
 
-        # Priority 3: Longest vertical connection
         connection_score = self.evaluate_vertical_connection(temp_board)
-        score += connection_score * 20
+        score += connection_score * 35
 
-        # Priority 4: Combat bonus - aggressive approach
-        # Check if this move creates combat
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            # Bonus for engaging in combat (aggressive)
-            score += enemy_adjacent * 15
+            score += enemy_adjacent * 25
 
-        # Priority 5: Piece power
         pip_count = len(piece.get_filled_positions())
-        score += pip_count * 5
+        score += pip_count * 8
 
-        # Priority 6: Center column preference (direct path)
         center_col_distance = abs(col - 2.5)
-        score += (6 - center_col_distance) * 10
+        score += (6 - center_col_distance) * 15
 
         return score
 
@@ -692,7 +685,7 @@ class DefensiveTerritoryAI(AIPlayer):
         super().__init__(color, name)
 
     def evaluate_move(self, board, piece, row, col, current_pieces):
-        """Defensive strategy: build territory, avoid combat, methodical expansion"""
+        """GEN 1: MAJOR CHANGES - Blue lost, switching to balanced aggression"""
         score = 0
 
         # Create temporary board state
@@ -703,35 +696,68 @@ class DefensiveTerritoryAI(AIPlayer):
         if temp_board.check_victory(self.color):
             score += 10000
 
-        # Priority 2: Horizontal territory control
+        # GEN 4-10: Trying different approaches to catch up to Red
+        # Final evolved values through generations
+        if self.color == 'B':
+            vertical_progress = 7 - row
+            score += vertical_progress * 60
+        else:
+            vertical_progress = row
+            score += vertical_progress * 60
+
+        connection_score = self.evaluate_vertical_connection(temp_board)
+        score += connection_score * 30
+
         territory_score = self.evaluate_territory_control(temp_board)
-        score += territory_score * 25
+        score += territory_score * 20
 
-        # Priority 3: Adjacency to existing pieces (safety in numbers)
-        friendly_adjacent = self.count_friendly_adjacent(board, row, col, current_pieces)
-        score += friendly_adjacent * 30
-
-        # Priority 4: Row-by-row expansion (methodical)
         expansion_score = self.evaluate_row_expansion(temp_board)
-        score += expansion_score * 20
+        score += expansion_score * 25
 
-        # Priority 5: Combat avoidance
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            # Penalty for combat (defensive)
-            score -= enemy_adjacent * 20
+            score += enemy_adjacent * 12  # Moderate combat seeking
 
-        # Priority 6: Piece efficiency
         pip_count = len(piece.get_filled_positions())
-        score += pip_count * 8
-
-        # Priority 7: Spread across columns (wide control)
-        column_diversity = self.evaluate_column_diversity(temp_board)
-        score += column_diversity * 15
+        score += pip_count * 10
 
         return score
+
+    def evaluate_vertical_connection(self, board):
+        """GEN 1: Added - Calculate the longest vertical span of connected pips"""
+        player_pips = []
+        for board_row in range(board.height):
+            for board_col in range(board.width):
+                piece = board.grid[board_row][board_col]
+                if piece and piece.player_color == self.color:
+                    for pip_row in range(3):
+                        for pip_col in range(3):
+                            if piece.pips[pip_row][pip_col] == self.color:
+                                global_pip_row = board_row * 3 + pip_row
+                                player_pips.append((global_pip_row, board_col * 3 + pip_col))
+
+        if not player_pips:
+            return 0
+
+        visited = set()
+        best_vertical_span = 0
+
+        for start_pip in player_pips:
+            if start_pip in visited:
+                continue
+
+            component = board.flood_fill(start_pip, player_pips, visited.copy())
+            visited.update(component)
+
+            if component:
+                min_row = min(pos[0] for pos in component)
+                max_row = max(pos[0] for pos in component)
+                vertical_span = max_row - min_row
+                best_vertical_span = max(best_vertical_span, vertical_span)
+
+        return best_vertical_span
 
     def evaluate_territory_control(self, board):
         """Measure how many rows we have strong presence in"""
