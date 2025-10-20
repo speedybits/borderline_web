@@ -65,6 +65,11 @@ class GamePiece:
                     positions.append((i, j))
         return positions
 
+    def get_power_level(self):
+        """Calculate power level as number of pips / 2 (rounded down)"""
+        pip_count = len(self.get_filled_positions())
+        return pip_count // 2
+
 class GameBoard:
     def __init__(self):
         self.grid = [[None for _ in range(6)] for _ in range(8)]
@@ -310,29 +315,72 @@ class GameBoard:
         
         return connected
     
-    def resolve_combat(self, adjacent_pips):
-        """Handle combat when different colored PIPs are adjacent"""
-        combats = []
-        
-        for adj in adjacent_pips:
-            if not adj['same_color']:
-                # Different colors - combat!
-                red_roll = random.randint(1, 6)
-                blue_roll = random.randint(1, 6)
-                
-                new_pos = adj['new_pos']
-                exist_pos = adj['exist_pos']
-                
-                combat_result = {
-                    'new_piece_pos': (new_pos[0], new_pos[1]),
-                    'existing_piece_pos': (exist_pos[0], exist_pos[1]),
-                    'red_roll': red_roll,
-                    'blue_roll': blue_roll,
-                    'winner': 'R' if red_roll > blue_roll else 'B'
-                }
-                combats.append(combat_result)
-        
-        return combats
+    def resolve_combat(self, new_piece, new_row, new_col, adjacent_pips):
+        """Handle combat when different colored PIPs are adjacent
+
+        Returns None if no combat, or a dict with combat results including:
+        - All defending pieces and their combined power
+        - Die rolls with power bonuses
+        - Winner
+        """
+        if not adjacent_pips:
+            return None
+
+        # Filter for enemy contacts only
+        enemy_contacts = [adj for adj in adjacent_pips if not adj['same_color']]
+        if not enemy_contacts:
+            return None
+
+        # Get all unique defending piece positions
+        defending_positions = set()
+        for contact in enemy_contacts:
+            pos = contact['exist_pos']
+            defending_positions.add((pos[0], pos[1]))
+
+        # Get all defending pieces
+        defending_pieces = []
+        total_defender_power = 0
+        for row, col in defending_positions:
+            piece = self.grid[row][col]
+            if piece:
+                power = piece.get_power_level()
+                defending_pieces.append({
+                    'row': row,
+                    'col': col,
+                    'piece': piece,
+                    'power': power
+                })
+                total_defender_power += power
+
+        # Calculate attacker power
+        attacker_power = new_piece.get_power_level()
+
+        # Roll dice
+        attacker_roll = random.randint(1, 6)
+        defender_roll = random.randint(1, 6)
+
+        # Add power levels
+        attacker_total = attacker_roll + attacker_power
+        defender_total = defender_roll + total_defender_power
+
+        # Determine winner (attacker wins on tie)
+        attacker_color = new_piece.player_color
+        defender_color = 'B' if attacker_color == 'R' else 'R'
+        winner = attacker_color if attacker_total >= defender_total else defender_color
+
+        return {
+            'attacker_pos': (new_row, new_col),
+            'attacker_power': attacker_power,
+            'attacker_roll': attacker_roll,
+            'attacker_total': attacker_total,
+            'attacker_color': attacker_color,
+            'defenders': defending_pieces,
+            'defender_power': total_defender_power,
+            'defender_roll': defender_roll,
+            'defender_total': defender_total,
+            'defender_color': defender_color,
+            'winner': winner
+        }
 
 class Player:
     def __init__(self, color, name):
@@ -543,33 +591,40 @@ class BorderlineGPT:
         self.last_placed_pos = (row, col)
 
         # Handle combat
-        if adjacent_pips:
-            combats = self.board.resolve_combat(adjacent_pips)
-            for combat in combats:
-                # Get positions of both combatants
-                attacker_pos = combat['new_piece_pos']
-                defender_pos = combat['existing_piece_pos']
+        combat = self.board.resolve_combat(piece, row, col, adjacent_pips)
+        if combat:
+            # Build list of all pieces involved in combat for highlighting
+            highlight_positions = [combat['attacker_pos']]
+            for defender in combat['defenders']:
+                highlight_positions.append((defender['row'], defender['col']))
 
-                # Show both pieces highlighted during combat
-                print(f"COMBAT! Red rolls {combat['red_roll']}, Blue rolls {combat['blue_roll']}")
-                print(self.board.display(highlight_positions=[attacker_pos, defender_pos]))
+            # Display combat information
+            print(f"\nCOMBAT!")
+            print(f"  Attacker ({combat['attacker_color']}): Roll={combat['attacker_roll']} + Power={combat['attacker_power']} = {combat['attacker_total']}")
+            print(f"  Defender ({combat['defender_color']}): Roll={combat['defender_roll']} + Power={combat['defender_power']} = {combat['defender_total']}")
+            if len(combat['defenders']) > 1:
+                print(f"  Defending pieces: {len(combat['defenders'])} (combined power: {combat['defender_power']})")
+            print(self.board.display(highlight_positions=highlight_positions))
 
-                if combat['winner'] != self.current_player.color:
-                    # Current player loses, remove their piece
-                    lost_piece = self.board.remove_piece(row, col)
+            if combat['winner'] != self.current_player.color:
+                # Attacker loses
+                lost_piece = self.board.remove_piece(row, col)
+                if lost_piece:
+                    self.current_player.add_piece_back(lost_piece)
+                    print(f"{self.current_player.name} loses combat and piece is returned!")
+                    # Clear highlight since piece was removed
+                    self.last_placed_pos = None
+            else:
+                # Defender(s) lose - remove all defending pieces
+                opponent_player = self.blue_player if self.current_player.color == 'R' else self.red_player
+                for defender in combat['defenders']:
+                    lost_piece = self.board.remove_piece(defender['row'], defender['col'])
                     if lost_piece:
-                        self.current_player.add_piece_back(lost_piece)
-                        print(f"{self.current_player.name} loses combat and piece is returned!")
-                        # Clear highlight since piece was removed
-                        self.last_placed_pos = None
+                        opponent_player.add_piece_back(lost_piece)
+                if len(combat['defenders']) > 1:
+                    print(f"All {len(combat['defenders'])} defending pieces are destroyed and returned!")
                 else:
-                    # Opponent loses, remove their piece
-                    loser_row, loser_col = combat['existing_piece_pos']
-                    lost_piece = self.board.remove_piece(loser_row, loser_col)
-                    if lost_piece:
-                        loser_player = self.red_player if lost_piece.player_color == 'R' else self.blue_player
-                        loser_player.add_piece_back(lost_piece)
-                        print(f"Opponent loses combat and their piece is returned!")
+                    print(f"Defending piece is destroyed and returned!")
 
         # Check victory
         if self.board.check_victory(self.current_player.color):
