@@ -617,29 +617,38 @@ class AggressiveConnectorAI(AIPlayer):
         if temp_board.check_victory(self.color):
             score += 10000
 
-        # GEN 4-10: Continued refinement - Red keeps winning
-        # Final optimized values through evolution
+        # GEN 21-40: COUNTER-BLOCKER - Extreme edge strategy
+        # Blue blocks center (cols 1-4), so Red goes extreme edges (0, 5)
+
         if self.color == 'R':
             vertical_progress = row
-            score += vertical_progress * 70
+            score += vertical_progress * 80  # Ultra high - speed is critical
         else:
             vertical_progress = 7 - row
-            score += vertical_progress * 70
+            score += vertical_progress * 80
 
         connection_score = self.evaluate_vertical_connection(temp_board)
-        score += connection_score * 35
+        score += connection_score * 40  # High connection focus
 
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            score += enemy_adjacent * 25
+            score += enemy_adjacent * 30  # High combat - need to win fights
 
         pip_count = len(piece.get_filled_positions())
-        score += pip_count * 8
+        score += pip_count * 15  # Maximize combat power
+
+        # EXTREME EDGE FOCUS - avoid Blue's blocked center
+        if col in [0, 5]:  # Extreme edges only!
+            score += 60  # Huge bonus
+        elif col in [1, 4]:  # Adjacent to edges
+            score += 20  # Small bonus
+        else:  # Center (Blue's territory)
+            score -= 30  # Penalty!
 
         center_col_distance = abs(col - 2.5)
-        score += (6 - center_col_distance) * 15
+        score += center_col_distance * 15  # Reward being far from center
 
         return score
 
@@ -696,32 +705,44 @@ class DefensiveTerritoryAI(AIPlayer):
         if temp_board.check_victory(self.color):
             score += 10000
 
-        # GEN 4-10: Trying different approaches to catch up to Red
-        # Final evolved values through generations
+        # GEN 13-20: Enhanced blocking - expand to all center columns
+
+        # Expanded center blocking
+        if col in [1, 2, 3, 4]:  # Block broader center
+            score += 35
+
+        # Vertical progress (balanced)
         if self.color == 'B':
             vertical_progress = 7 - row
-            score += vertical_progress * 60
+            score += vertical_progress * 50
         else:
             vertical_progress = row
-            score += vertical_progress * 60
+            score += vertical_progress * 50
 
+        # Critical row blocking (rows 3-4 most important)
+        if row in [3, 4]:
+            score += 40  # Higher for critical middle
+        elif row in [2, 5]:
+            score += 20  # Moderate for adjacent
+
+        # Vertical connection
         connection_score = self.evaluate_vertical_connection(temp_board)
-        score += connection_score * 30
+        score += connection_score * 25
 
+        # Territory control
         territory_score = self.evaluate_territory_control(temp_board)
-        score += territory_score * 20
+        score += territory_score * 22
 
-        expansion_score = self.evaluate_row_expansion(temp_board)
-        score += expansion_score * 25
-
+        # Combat bonus
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            score += enemy_adjacent * 12  # Moderate combat seeking
+            score += enemy_adjacent * 28
 
+        # Piece power
         pip_count = len(piece.get_filled_positions())
-        score += pip_count * 10
+        score += pip_count * 11
 
         return score
 

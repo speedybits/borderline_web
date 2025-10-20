@@ -157,3 +157,74 @@ Based on evolution, the optimal strategy appears to be:
 - Moderate combat engagement: 18-20 pts
 - Balance between offense and some territorial awareness
 
+
+## Generation 11 - BREAKTHROUGH!
+
+### Strategy Shift
+**Red**: Reverted to Gen 2 "sweet spot" parameters (60 vertical, 28 connection, 20 combat)
+
+**Blue**: MAJOR CHANGE - Defensive Blocker strategy
+- Center column focus: +40 pts for columns 2-3
+- Middle row blocking: +30 pts for rows 3-5
+- Vertical progress: 45 pts (moderate)
+- Combat seeking: 25 pts (high - disrupt Red)
+- Territory control: 25 pts
+
+### Results
+- Red wins: 3
+- Blue wins: **4** 🏆
+- Draws: 93
+- **Winner: BLUE! (57.1% of decisive games)**
+
+### Analysis
+BREAKTHROUGH! Blue finally beats Red by focusing on BLOCKING rather than racing. The defensive blocker strategy:
+- Occupies center columns (Red's preferred path)
+- Controls middle rows (Red's bottleneck)
+- High combat engagement to disrupt
+- Less focus on own vertical progress
+
+This proves that counter-strategies can work! Blue wins by preventing Red from winning rather than racing to victory.
+
+---
+
+## Generation 12
+
+**Red**: Added edge column preference (+18 for cols 0,1,4,5) to avoid Blue's center blocking. Increased aggression (65 vertical, 32 connection, 23 combat).
+
+**Blue**: Small tweaks to winning blocking strategy (45→48 vertical, 27 combat, 45 center blocking).
+
+### Results
+- Red: 4, Blue: 3, Draw: 93
+- **Winner: Red (57.1%)** - Red adapts to blocking strategy
+
+---
+
+---
+
+# PHASE 2: RED COUNTER-EVOLUTION (Generations 21-40)
+
+## Objective
+Blue's blocking strategy (Generations 13-20) is **LOCKED**.
+Red must evolve to achieve **90%+ win rate** against the blocker.
+
+## Blue's Locked Strategy (The Blocker)
+- Center blocking: +35 pts for columns 1-4
+- Critical row control: +40 pts for rows 3-4
+- Vertical progress: 50 pts/row
+- Combat seeking: 28 pts
+- Territory control: 22 pts
+
+## Red's Counter-Strategy (Generation 21)
+
+**EXTREME EDGE RUNNER**:
+- Vertical progress: 80 pts/row (ultra-aggressive)
+- Connection: 40x (high focus)
+- Combat: 30 pts + 15 pts/pip (maximize power)
+- **Column strategy**:
+  - Extreme edges (0, 5): +60 pts
+  - Near edges (1, 4): +20 pts  
+  - Center (2, 3): -30 pts (AVOID Blue's territory!)
+- Distance from center: +15 pts/unit
+
+**Hypothesis**: By avoiding Blue's blocked center and using extreme edges, Red can build uncontested vertical paths.
+
