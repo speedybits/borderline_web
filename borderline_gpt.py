@@ -81,6 +81,55 @@ class GamePiece:
                 if self.pips[i][j] == old_color:
                     self.pips[i][j] = new_color
 
+    def rotate(self, degrees):
+        """
+        Rotate the piece around its center PIP.
+        degrees: 0, 90, 180, or 270 (clockwise rotation)
+        Returns a new GamePiece with rotated pip pattern
+        """
+        if degrees not in [0, 90, 180, 270]:
+            raise ValueError("Rotation must be 0, 90, 180, or 270 degrees")
+
+        if degrees == 0:
+            # No rotation - return a copy
+            rotated = copy.deepcopy(self)
+            return rotated
+
+        # Create new piece with same color
+        rotated = GamePiece.__new__(GamePiece)
+        rotated.player_color = self.player_color
+        rotated.pips = [['_' for _ in range(3)] for _ in range(3)]
+
+        # Rotate each pip around the center [1][1]
+        for i in range(3):
+            for j in range(3):
+                if self.pips[i][j] != '_':
+                    # Calculate position relative to center
+                    rel_i = i - 1
+                    rel_j = j - 1
+
+                    # Rotate coordinates
+                    if degrees == 90:
+                        # 90° clockwise: (x, y) -> (y, -x)
+                        new_rel_i = rel_j
+                        new_rel_j = -rel_i
+                    elif degrees == 180:
+                        # 180°: (x, y) -> (-x, -y)
+                        new_rel_i = -rel_i
+                        new_rel_j = -rel_j
+                    elif degrees == 270:
+                        # 270° clockwise: (x, y) -> (-y, x)
+                        new_rel_i = -rel_j
+                        new_rel_j = rel_i
+
+                    # Convert back to absolute coordinates
+                    new_i = new_rel_i + 1
+                    new_j = new_rel_j + 1
+
+                    rotated.pips[new_i][new_j] = self.player_color
+
+        return rotated
+
 class GameBoard:
     def __init__(self):
         self.grid = [[None for _ in range(6)] for _ in range(8)]
@@ -448,28 +497,33 @@ class AIPlayer(Player):
     def choose_move(self, board):
         """AI decision making for piece placement"""
         if not self.has_pieces():
-            return None, None, None
-        
+            return None, None, None, None, None
+
         current_pieces = board.get_player_pieces(self.color)
         valid_moves = []
-        
-        # Try each piece and position
+
+        # Try each piece, rotation, and position
         for piece_idx, piece in enumerate(self.pieces):
-            for row in range(board.height):
-                for col in range(board.width):
-                    if board.can_place_piece(piece, row, col, current_pieces):
-                        score = self.evaluate_move(board, piece, row, col, current_pieces)
-                        valid_moves.append((score, piece_idx, row, col))
-        
+            for rotation in [0, 90, 180, 270]:
+                rotated_piece = piece.rotate(rotation)
+                for row in range(board.height):
+                    for col in range(board.width):
+                        if board.can_place_piece(rotated_piece, row, col, current_pieces):
+                            score = self.evaluate_move(board, rotated_piece, row, col, current_pieces)
+                            valid_moves.append((score, piece_idx, row, col, rotation))
+
         if not valid_moves:
-            return None, None, None
-        
+            return None, None, None, None, None
+
         # Sort by score (highest first) and choose best move
         valid_moves.sort(reverse=True)
-        best_score, piece_idx, row, col = valid_moves[0]
-        
+        best_score, piece_idx, row, col, rotation = valid_moves[0]
+
+        # Get the piece and apply the chosen rotation
         chosen_piece = self.pieces[piece_idx]
-        return chosen_piece, row, col
+        rotated_piece = chosen_piece.rotate(rotation)
+
+        return rotated_piece, row, col, rotation, piece_idx
     
     def evaluate_move(self, board, piece, row, col, current_pieces):
         """Evaluate the quality of a potential move"""
@@ -578,16 +632,22 @@ class BorderlineGPT:
             return
         
         # AI chooses move
-        piece, row, col = self.current_player.choose_move(self.board)
-        
-        if piece is None:
+        result = self.current_player.choose_move(self.board)
+
+        if result[0] is None:
             print(f"{self.current_player.name} has no valid moves - skipping turn")
             self.switch_player()
             self.turn_count += 1
             return
-        
-        # Remove piece from player's hand
-        self.current_player.pieces.remove(piece)
+
+        piece, row, col, rotation, piece_idx = result
+
+        # Remove the original piece from player's hand using the index
+        original_piece = self.current_player.pieces.pop(piece_idx)
+
+        # Display rotation info if piece was rotated
+        if rotation != 0:
+            print(f"{self.current_player.name} rotates piece {rotation}° clockwise")
         
         # Check for combat before placing
         current_pieces = self.board.get_player_pieces(self.current_player.color)
