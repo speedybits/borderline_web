@@ -59,12 +59,13 @@ Red piece with 4 filled PIPs:
 ### Rule 0: Turn Structure
 Players alternate turns, placing one piece per turn.
 
-### Rule 1: Initial Placement
-- **Red Player**: Must place first piece in the top row (row 0) if no Red pieces exist there
-- **Blue Player**: Must place first piece in the bottom row (row 7) if no Blue pieces exist there
+### Rule 1: Starting Row Placement
+- **Red Player**: Can always place pieces in the top row (row 0)
+- **Blue Player**: Can always place pieces in the bottom row (row 7)
+- Pieces placed in the starting row do not require adjacency to existing pieces
 
 ### Rule 2: Adjacency Requirement
-After the initial piece, all subsequent pieces must be placed adjacent to an existing piece of the same color, with at least one PIP of the new piece touching a PIP of the existing piece.
+For pieces placed outside the starting row, they must be placed adjacent to an existing piece of the same color, with at least one PIP of the new piece touching a PIP of the existing piece.
 
 **Adjacent means**: Horizontally or vertically neighboring squares (not diagonal)
 

@@ -246,14 +246,14 @@ class GameBoard:
         if not self.is_empty(row, col):
             return False
 
-        # Rule 1: First piece placement restrictions
         player_color = piece.player_color
-        if player_color == 'R':
-            if not self.has_player_pieces_in_row(player_color, 0):
-                return row == 0
-        elif player_color == 'B':
-            if not self.has_player_pieces_in_row(player_color, 7):
-                return row == 7
+
+        # Rule 1: Players can always place in their starting row
+        # Red's starting row is 0 (top), Blue's starting row is 7 (bottom)
+        if player_color == 'R' and row == 0:
+            return True
+        elif player_color == 'B' and row == 7:
+            return True
 
         # Rule 2: Must be adjacent to existing piece with touching PIPs
         if player_pieces:
