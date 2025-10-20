@@ -70,6 +70,17 @@ class GamePiece:
         pip_count = len(self.get_filled_positions())
         return pip_count // 2
 
+    def convert_to_color(self, new_color):
+        """Convert all pips on this piece to a new color"""
+        old_color = self.player_color
+        self.player_color = new_color
+
+        # Update all pips from old color to new color
+        for i in range(3):
+            for j in range(3):
+                if self.pips[i][j] == old_color:
+                    self.pips[i][j] = new_color
+
 class GameBoard:
     def __init__(self):
         self.grid = [[None for _ in range(6)] for _ in range(8)]
@@ -607,24 +618,27 @@ class BorderlineGPT:
             print(self.board.display(highlight_positions=highlight_positions))
 
             if combat['winner'] != self.current_player.color:
-                # Attacker loses
-                lost_piece = self.board.remove_piece(row, col)
-                if lost_piece:
-                    self.current_player.add_piece_back(lost_piece)
-                    print(f"{self.current_player.name} loses combat and piece is returned!")
-                    # Clear highlight since piece was removed
+                # Attacker loses - piece is converted to defender's color
+                attacking_piece = self.board.get_piece(row, col)
+                if attacking_piece:
+                    attacking_piece.convert_to_color(combat['defender_color'])
+                    # Give the converted piece to the winning player
+                    winner_player = self.red_player if combat['defender_color'] == 'R' else self.blue_player
+                    # Remove from current player's count (it's already on the board)
+                    print(f"{self.current_player.name} loses combat! Piece is captured and converted to {combat['defender_color']}!")
+                    # Clear highlight since piece changed ownership
                     self.last_placed_pos = None
             else:
-                # Defender(s) lose - remove all defending pieces
-                opponent_player = self.blue_player if self.current_player.color == 'R' else self.red_player
+                # Defender(s) lose - all defending pieces are converted to attacker's color
                 for defender in combat['defenders']:
-                    lost_piece = self.board.remove_piece(defender['row'], defender['col'])
-                    if lost_piece:
-                        opponent_player.add_piece_back(lost_piece)
+                    defending_piece = self.board.get_piece(defender['row'], defender['col'])
+                    if defending_piece:
+                        defending_piece.convert_to_color(combat['attacker_color'])
+
                 if len(combat['defenders']) > 1:
-                    print(f"All {len(combat['defenders'])} defending pieces are destroyed and returned!")
+                    print(f"All {len(combat['defenders'])} defending pieces are captured and converted to {combat['attacker_color']}!")
                 else:
-                    print(f"Defending piece is destroyed and returned!")
+                    print(f"Defending piece is captured and converted to {combat['attacker_color']}!")
 
         # Check victory
         if self.board.check_victory(self.current_player.color):
