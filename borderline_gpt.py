@@ -310,7 +310,8 @@ class GameBoard:
             same_color_adjacent = any(adj['same_color'] for adj in adjacent_pips)
             return same_color_adjacent
 
-        return True
+        # If no pieces on board and not in starting row, placement is illegal
+        return False
     
     def check_victory(self, player_color):
         """Check if player has a contiguous connection across the board lengthwise (8 squares)"""
