@@ -600,11 +600,209 @@ class AIPlayer(Player):
         # Reward large connected components and good span
         return max_component_size + (best_span * 2)
 
+class AggressiveConnectorAI(AIPlayer):
+    """Red Strategy: Aggressive path builder focusing on direct vertical connection"""
+    def __init__(self, color, name):
+        super().__init__(color, name)
+
+    def evaluate_move(self, board, piece, row, col, current_pieces):
+        """Aggressive strategy: prioritize vertical progress and direct paths"""
+        score = 0
+
+        # Create temporary board state
+        temp_board = copy.deepcopy(board)
+        temp_board.place_piece(piece, row, col)
+
+        # Priority 1: Win condition
+        if temp_board.check_victory(self.color):
+            score += 10000
+
+        # Priority 2: Vertical progress (massive bonus for moving toward goal)
+        if self.color == 'R':
+            # Red wants to reach row 7 (bottom)
+            vertical_progress = row  # Higher row = better (0->7)
+            score += vertical_progress * 50
+        else:
+            # Blue wants to reach row 0 (top)
+            vertical_progress = 7 - row  # Lower row = better (7->0)
+            score += vertical_progress * 50
+
+        # Priority 3: Longest vertical connection
+        connection_score = self.evaluate_vertical_connection(temp_board)
+        score += connection_score * 20
+
+        # Priority 4: Combat bonus - aggressive approach
+        # Check if this move creates combat
+        all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
+        adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
+        enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
+        if enemy_adjacent > 0:
+            # Bonus for engaging in combat (aggressive)
+            score += enemy_adjacent * 15
+
+        # Priority 5: Piece power
+        pip_count = len(piece.get_filled_positions())
+        score += pip_count * 5
+
+        # Priority 6: Center column preference (direct path)
+        center_col_distance = abs(col - 2.5)
+        score += (6 - center_col_distance) * 10
+
+        return score
+
+    def evaluate_vertical_connection(self, board):
+        """Calculate the longest vertical span of connected pips"""
+        player_pips = []
+        for board_row in range(board.height):
+            for board_col in range(board.width):
+                piece = board.grid[board_row][board_col]
+                if piece and piece.player_color == self.color:
+                    for pip_row in range(3):
+                        for pip_col in range(3):
+                            if piece.pips[pip_row][pip_col] == self.color:
+                                global_pip_row = board_row * 3 + pip_row
+                                player_pips.append((global_pip_row, board_col * 3 + pip_col))
+
+        if not player_pips:
+            return 0
+
+        # Find connected components and measure vertical span
+        visited = set()
+        best_vertical_span = 0
+
+        for start_pip in player_pips:
+            if start_pip in visited:
+                continue
+
+            component = board.flood_fill(start_pip, player_pips, visited.copy())
+            visited.update(component)
+
+            if component:
+                min_row = min(pos[0] for pos in component)
+                max_row = max(pos[0] for pos in component)
+                vertical_span = max_row - min_row
+                best_vertical_span = max(best_vertical_span, vertical_span)
+
+        return best_vertical_span
+
+
+class DefensiveTerritoryAI(AIPlayer):
+    """Blue Strategy: Defensive territory control, methodical expansion"""
+    def __init__(self, color, name):
+        super().__init__(color, name)
+
+    def evaluate_move(self, board, piece, row, col, current_pieces):
+        """Defensive strategy: build territory, avoid combat, methodical expansion"""
+        score = 0
+
+        # Create temporary board state
+        temp_board = copy.deepcopy(board)
+        temp_board.place_piece(piece, row, col)
+
+        # Priority 1: Win condition
+        if temp_board.check_victory(self.color):
+            score += 10000
+
+        # Priority 2: Horizontal territory control
+        territory_score = self.evaluate_territory_control(temp_board)
+        score += territory_score * 25
+
+        # Priority 3: Adjacency to existing pieces (safety in numbers)
+        friendly_adjacent = self.count_friendly_adjacent(board, row, col, current_pieces)
+        score += friendly_adjacent * 30
+
+        # Priority 4: Row-by-row expansion (methodical)
+        expansion_score = self.evaluate_row_expansion(temp_board)
+        score += expansion_score * 20
+
+        # Priority 5: Combat avoidance
+        all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
+        adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
+        enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
+        if enemy_adjacent > 0:
+            # Penalty for combat (defensive)
+            score -= enemy_adjacent * 20
+
+        # Priority 6: Piece efficiency
+        pip_count = len(piece.get_filled_positions())
+        score += pip_count * 8
+
+        # Priority 7: Spread across columns (wide control)
+        column_diversity = self.evaluate_column_diversity(temp_board)
+        score += column_diversity * 15
+
+        return score
+
+    def evaluate_territory_control(self, board):
+        """Measure how many rows we have strong presence in"""
+        row_counts = [0] * board.height
+        for board_row in range(board.height):
+            for board_col in range(board.width):
+                piece = board.grid[board_row][board_col]
+                if piece and piece.player_color == self.color:
+                    row_counts[board_row] += 1
+
+        # Reward having multiple pieces in rows
+        territory_score = sum(min(count * 2, 10) for count in row_counts)
+        return territory_score
+
+    def count_friendly_adjacent(self, board, row, col, current_pieces):
+        """Count how many friendly pieces are adjacent"""
+        adjacent_count = 0
+        for piece_row, piece_col, _ in current_pieces:
+            if abs(piece_row - row) + abs(piece_col - col) == 1:
+                adjacent_count += 1
+        return adjacent_count
+
+    def evaluate_row_expansion(self, board):
+        """Reward methodical row-by-row expansion"""
+        rows_with_pieces = set()
+        for board_row in range(board.height):
+            for board_col in range(board.width):
+                piece = board.grid[board_row][board_col]
+                if piece and piece.player_color == self.color:
+                    rows_with_pieces.add(board_row)
+
+        if not rows_with_pieces:
+            return 0
+
+        # Reward contiguous row control
+        if rows_with_pieces:
+            min_row = min(rows_with_pieces)
+            max_row = max(rows_with_pieces)
+            row_span = max_row - min_row + 1
+            contiguous_bonus = row_span if len(rows_with_pieces) == row_span else 0
+            return len(rows_with_pieces) * 2 + contiguous_bonus * 3
+
+        return 0
+
+    def evaluate_column_diversity(self, board):
+        """Reward spreading across multiple columns"""
+        columns_with_pieces = set()
+        for board_row in range(board.height):
+            for board_col in range(board.width):
+                piece = board.grid[board_row][board_col]
+                if piece and piece.player_color == self.color:
+                    columns_with_pieces.add(board_col)
+
+        return len(columns_with_pieces)
+
+
 class BorderlineGPT:
-    def __init__(self):
+    def __init__(self, red_strategy='default', blue_strategy='default'):
         self.board = GameBoard()
-        self.red_player = AIPlayer('R', 'Red AI')
-        self.blue_player = AIPlayer('B', 'Blue AI')
+
+        # Select strategy for Red
+        if red_strategy == 'aggressive':
+            self.red_player = AggressiveConnectorAI('R', 'Red AI (Aggressive)')
+        else:
+            self.red_player = AIPlayer('R', 'Red AI')
+
+        # Select strategy for Blue
+        if blue_strategy == 'defensive':
+            self.blue_player = DefensiveTerritoryAI('B', 'Blue AI (Defensive)')
+        else:
+            self.blue_player = AIPlayer('B', 'Blue AI')
         self.current_player = self.red_player
         self.turn_count = 0
         self.game_over = False
