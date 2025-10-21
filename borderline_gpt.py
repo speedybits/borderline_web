@@ -232,10 +232,14 @@ class GameBoard:
     def check_pip_adjacency(self, new_piece, new_row, new_col, existing_pieces):
         """Check if placing new_piece at (new_row, new_col) has adjacent PIPs with existing pieces
 
-        A pip is adjacent if it's orthogonally or diagonally adjacent to another pip.
-        This checks all pips in the new piece against all pips in all existing pieces.
+        Adjacency rules:
+        - Orthogonal adjacency (up/down/left/right): Always counts
+        - Diagonal adjacency: Only counts for corner pips (positions 0,0 / 0,2 / 2,0 / 2,2)
         """
         adjacent_pips = []
+
+        # Corner positions in a 3x3 piece
+        corners = {(0, 0), (0, 2), (2, 0), (2, 2)}
 
         # Get all pips from the new piece with their global coordinates
         new_pips = []
@@ -244,7 +248,8 @@ class GameBoard:
                 if new_piece.pips[pip_row][pip_col] == new_piece.player_color:
                     global_pip_row = new_row * 3 + pip_row
                     global_pip_col = new_col * 3 + pip_col
-                    new_pips.append((global_pip_row, global_pip_col))
+                    is_corner = (pip_row, pip_col) in corners
+                    new_pips.append((global_pip_row, global_pip_col, pip_row, pip_col, is_corner))
 
         # Check against all existing pieces
         for exist_row, exist_col, exist_piece in existing_pieces:
@@ -254,16 +259,26 @@ class GameBoard:
                     if exist_piece.pips[pip_row][pip_col] == exist_piece.player_color:
                         exist_global_row = exist_row * 3 + pip_row
                         exist_global_col = exist_col * 3 + pip_col
+                        exist_is_corner = (pip_row, pip_col) in corners
 
-                        # Check if any pip in new piece is adjacent (orthogonal or diagonal) to this pip
-                        for new_global_row, new_global_col in new_pips:
+                        # Check if any pip in new piece is adjacent to this pip
+                        for new_global_row, new_global_col, new_pip_row, new_pip_col, new_is_corner in new_pips:
                             row_diff = abs(new_global_row - exist_global_row)
                             col_diff = abs(new_global_col - exist_global_col)
 
-                            # Adjacent if within 1 step in both row and col (and not the same position)
-                            if row_diff <= 1 and col_diff <= 1 and not (row_diff == 0 and col_diff == 0):
+                            # Skip if same position
+                            if row_diff == 0 and col_diff == 0:
+                                continue
+
+                            # Check if adjacent
+                            is_orthogonal = (row_diff == 1 and col_diff == 0) or (row_diff == 0 and col_diff == 1)
+                            is_diagonal = (row_diff == 1 and col_diff == 1)
+
+                            # Orthogonal adjacency always counts
+                            # Diagonal adjacency only counts if BOTH pips are corners
+                            if is_orthogonal or (is_diagonal and new_is_corner and exist_is_corner):
                                 adjacent_pips.append({
-                                    'new_pos': (new_row, new_col, new_global_row - new_row * 3, new_global_col - new_col * 3),
+                                    'new_pos': (new_row, new_col, new_pip_row, new_pip_col),
                                     'exist_pos': (exist_row, exist_col, pip_row, pip_col),
                                     'same_color': new_piece.player_color == exist_piece.player_color
                                 })
