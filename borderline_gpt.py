@@ -230,63 +230,43 @@ class GameBoard:
         return pieces
     
     def check_pip_adjacency(self, new_piece, new_row, new_col, existing_pieces):
-        """Check if placing new_piece at (new_row, new_col) has adjacent PIPs with existing pieces"""
+        """Check if placing new_piece at (new_row, new_col) has adjacent PIPs with existing pieces
+
+        A pip is adjacent if it's orthogonally or diagonally adjacent to another pip.
+        This checks all pips in the new piece against all pips in all existing pieces.
+        """
         adjacent_pips = []
 
+        # Get all pips from the new piece with their global coordinates
+        new_pips = []
+        for pip_row in range(3):
+            for pip_col in range(3):
+                if new_piece.pips[pip_row][pip_col] == new_piece.player_color:
+                    global_pip_row = new_row * 3 + pip_row
+                    global_pip_col = new_col * 3 + pip_col
+                    new_pips.append((global_pip_row, global_pip_col))
+
+        # Check against all existing pieces
         for exist_row, exist_col, exist_piece in existing_pieces:
-            # Check if pieces are adjacent and which direction
+            # Get all pips from this existing piece
+            for pip_row in range(3):
+                for pip_col in range(3):
+                    if exist_piece.pips[pip_row][pip_col] == exist_piece.player_color:
+                        exist_global_row = exist_row * 3 + pip_row
+                        exist_global_col = exist_col * 3 + pip_col
 
-            # Existing piece is ABOVE new piece
-            if exist_row == new_row - 1 and exist_col == new_col:
-                # Check all 3 columns where edges touch
-                for col in range(3):
-                    new_pip = new_piece.pips[0][col]  # Top edge of new piece
-                    exist_pip = exist_piece.pips[2][col]  # Bottom edge of existing piece
-                    if new_pip == new_piece.player_color and exist_pip == exist_piece.player_color:
-                        adjacent_pips.append({
-                            'new_pos': (new_row, new_col, 0, col),
-                            'exist_pos': (exist_row, exist_col, 2, col),
-                            'same_color': new_piece.player_color == exist_piece.player_color
-                        })
+                        # Check if any pip in new piece is adjacent (orthogonal or diagonal) to this pip
+                        for new_global_row, new_global_col in new_pips:
+                            row_diff = abs(new_global_row - exist_global_row)
+                            col_diff = abs(new_global_col - exist_global_col)
 
-            # Existing piece is BELOW new piece
-            elif exist_row == new_row + 1 and exist_col == new_col:
-                # Check all 3 columns where edges touch
-                for col in range(3):
-                    new_pip = new_piece.pips[2][col]  # Bottom edge of new piece
-                    exist_pip = exist_piece.pips[0][col]  # Top edge of existing piece
-                    if new_pip == new_piece.player_color and exist_pip == exist_piece.player_color:
-                        adjacent_pips.append({
-                            'new_pos': (new_row, new_col, 2, col),
-                            'exist_pos': (exist_row, exist_col, 0, col),
-                            'same_color': new_piece.player_color == exist_piece.player_color
-                        })
-
-            # Existing piece is LEFT of new piece
-            elif exist_row == new_row and exist_col == new_col - 1:
-                # Check all 3 rows where edges touch
-                for row in range(3):
-                    new_pip = new_piece.pips[row][0]  # Left edge of new piece
-                    exist_pip = exist_piece.pips[row][2]  # Right edge of existing piece
-                    if new_pip == new_piece.player_color and exist_pip == exist_piece.player_color:
-                        adjacent_pips.append({
-                            'new_pos': (new_row, new_col, row, 0),
-                            'exist_pos': (exist_row, exist_col, row, 2),
-                            'same_color': new_piece.player_color == exist_piece.player_color
-                        })
-
-            # Existing piece is RIGHT of new piece
-            elif exist_row == new_row and exist_col == new_col + 1:
-                # Check all 3 rows where edges touch
-                for row in range(3):
-                    new_pip = new_piece.pips[row][2]  # Right edge of new piece
-                    exist_pip = exist_piece.pips[row][0]  # Left edge of existing piece
-                    if new_pip == new_piece.player_color and exist_pip == exist_piece.player_color:
-                        adjacent_pips.append({
-                            'new_pos': (new_row, new_col, row, 2),
-                            'exist_pos': (exist_row, exist_col, row, 0),
-                            'same_color': new_piece.player_color == exist_piece.player_color
-                        })
+                            # Adjacent if within 1 step in both row and col (and not the same position)
+                            if row_diff <= 1 and col_diff <= 1 and not (row_diff == 0 and col_diff == 0):
+                                adjacent_pips.append({
+                                    'new_pos': (new_row, new_col, new_global_row - new_row * 3, new_global_col - new_col * 3),
+                                    'exist_pos': (exist_row, exist_col, pip_row, pip_col),
+                                    'same_color': new_piece.player_color == exist_piece.player_color
+                                })
 
         return adjacent_pips
 
