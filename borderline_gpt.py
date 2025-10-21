@@ -989,8 +989,50 @@ class HumanPlayer(Player):
             continue
 
 
+class RandomPlayer(Player):
+    """Random player that makes random legal moves"""
+    def __init__(self, color, name):
+        super().__init__(color, name)
+
+    def choose_move(self, board):
+        """Randomly select a legal move"""
+        if not self.has_pieces():
+            return None, None, None, None, None
+
+        # Try pieces in random order
+        piece_indices = list(range(len(self.pieces)))
+        random.shuffle(piece_indices)
+
+        for piece_idx in piece_indices:
+            piece = self.pieces[piece_idx]
+
+            # Try rotations in random order
+            rotations = [0, 90, 180, 270]
+            random.shuffle(rotations)
+
+            for rotation in rotations:
+                rotated_piece = piece.rotate(rotation)
+                current_pieces = board.get_player_pieces(self.color)
+
+                # Get all valid positions for this piece/rotation
+                valid_positions = []
+                for row in range(board.height):
+                    for col in range(board.width):
+                        if board.can_place_piece(rotated_piece, row, col, current_pieces):
+                            valid_positions.append((row, col))
+
+                # If we found valid positions, pick one randomly
+                if valid_positions:
+                    row, col = random.choice(valid_positions)
+                    print(f"{self.name} randomly places piece at ({row}, {col}) with {rotation}° rotation")
+                    return rotated_piece, row, col, rotation, piece_idx
+
+        # No legal moves found
+        return None, None, None, None, None
+
+
 class BorderlineGPT:
-    def __init__(self, red_strategy='default', blue_strategy='default', blue_human=False):
+    def __init__(self, red_strategy='default', blue_strategy='default', blue_human=False, blue_random=False):
         self.board = GameBoard()
 
         # Select strategy for Red
@@ -999,9 +1041,11 @@ class BorderlineGPT:
         else:
             self.red_player = AIPlayer('R', 'Red AI')
 
-        # Select strategy for Blue (can be human or AI)
+        # Select strategy for Blue (can be human, random, or AI)
         if blue_human:
             self.blue_player = HumanPlayer('B', 'Human Player (Blue)')
+        elif blue_random:
+            self.blue_player = RandomPlayer('B', 'Random Player (Blue)')
         elif blue_strategy == 'defensive':
             self.blue_player = DefensiveTerritoryAI('B', 'Blue AI (Defensive)')
         else:
@@ -1147,6 +1191,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Borderline - A strategic board game')
     parser.add_argument('--human_vs_ai', action='store_true',
                         help='Play as Human (Blue) against AI (Red)')
+    parser.add_argument('--blue_random', action='store_true',
+                        help='Blue makes random legal moves, Red uses AI')
     args = parser.parse_args()
 
     if args.human_vs_ai:
@@ -1155,6 +1201,12 @@ if __name__ == "__main__":
         print("You are playing as Blue against Red AI")
         print("=" * 60)
         game = BorderlineGPT(red_strategy='aggressive', blue_human=True)
+    elif args.blue_random:
+        print("=" * 60)
+        print("BORDERLINE: AI vs Random Mode")
+        print("Red AI (Aggressive) vs Random Blue")
+        print("=" * 60)
+        game = BorderlineGPT(red_strategy='aggressive', blue_random=True)
     else:
         game = BorderlineGPT()
 
