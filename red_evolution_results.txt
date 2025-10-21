@@ -2,3 +2,4 @@
 Target: Red achieves 90%+ win rate
 
 Gen 21: Red 4, Blue 4 (Red win rate: 50%)
+Gen 22: Red 5, Blue 2 (Red win rate: 71%)
