@@ -338,12 +338,19 @@ class GameBoard:
             
             connected_component = self.flood_fill(start_pip, player_pips, visited.copy())
             
-            # Check if this component spans the board lengthwise (0 to 7*3+2 = 23)
-            min_row = min(pos[0] for pos in connected_component)
-            max_row = max(pos[0] for pos in connected_component)
-            
-            # Victory condition: connection spans from top area (0-2) to bottom area (21-23)
-            if min_row <= 2 and max_row >= 21:
+            # Check if this component spans the board lengthwise
+            # Victory requires spanning from top board row to bottom board row
+            # Board row 0 = pip rows 0-2, Board row 7 = pip rows 21-23
+            rows_with_pips = set(pos[0] for pos in connected_component)
+            min_row = min(rows_with_pips)
+            max_row = max(rows_with_pips)
+
+            # Check if connection reaches from one end of board to the other
+            # Must span from top board row (pips 0-2) to bottom board row (pips 21-23)
+            top_end_reached = min_row <= 2  # Touches board row 0
+            bottom_end_reached = max_row >= 21  # Touches board row 7
+
+            if top_end_reached and bottom_end_reached:
                 return True
             
             visited.update(connected_component)
@@ -617,39 +624,38 @@ class AggressiveConnectorAI(AIPlayer):
         if temp_board.check_victory(self.color):
             score += 10000
 
-        # GEN 25: COMPETITIVE CO-EVOLUTION RESUMES
-        # Red: Small tweaks to Gen 22 (winner 71%)
-        # Blue: UNLOCKED - will counter-evolve!
+        # GEN 27: RED DOUBLES DOWN ON DOMINANCE
+        # Blue is contesting edges hard - Red must be FASTER and STRONGER!
 
         if self.color == 'R':
             vertical_progress = row
-            score += vertical_progress * 85  # Slight increase from 80
+            score += vertical_progress * 95  # HUGE jump from 85!
         else:
             vertical_progress = 7 - row
-            score += vertical_progress * 85
+            score += vertical_progress * 95
 
         connection_score = self.evaluate_vertical_connection(temp_board)
-        score += connection_score * 42  # Slight increase from 40
+        score += connection_score * 50  # Big increase from 42
 
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            score += enemy_adjacent * 32  # Slight increase from 30
+            score += enemy_adjacent * 40  # Big increase from 32 - must win fights!
 
         pip_count = len(piece.get_filled_positions())
-        score += pip_count * 16  # Slight increase from 15
+        score += pip_count * 20  # Increase from 16 - power matters!
 
-        # Edge strategy (Red's winning formula)
-        if col in [0, 5]:  # Extreme edges
-            score += 65  # Slight increase from 60
+        # Edge strategy (Red MUST dominate edges to beat Blue)
+        if col in [0, 5]:  # Extreme edges - GO HARDER!
+            score += 80  # MASSIVE increase from 65 (beat Blue's 70!)
         elif col in [1, 4]:  # Near edges
-            score += 22  # Slight increase from 20
+            score += 30  # Increase from 22
         else:  # Center
-            score -= 32  # Slightly stronger penalty from -30
+            score -= 45  # MUCH stronger penalty from -32
 
         center_col_distance = abs(col - 2.5)
-        score += center_col_distance * 16  # Slight increase from 15
+        score += center_col_distance * 20  # Increase from 16
 
         return score
 
@@ -706,49 +712,49 @@ class DefensiveTerritoryAI(AIPlayer):
         if temp_board.check_victory(self.color):
             score += 10000
 
-        # GEN 25: EDGE CONTESTER - Counter Red's edge strategy!
-        # MAJOR CHANGE: Blue shifts to contest Red's edges
+        # GEN 26: HYPER-AGGRESSIVE EDGE DOMINANCE
+        # Blue goes ALL-IN on edges and combat to beat Red at its own game!
 
-        # Vertical progress (increased to match Red's speed)
+        # Vertical progress (MASSIVE increase - must match Red!)
         if self.color == 'B':
             vertical_progress = 7 - row
-            score += vertical_progress * 65  # Big jump from 50!
+            score += vertical_progress * 75  # HUGE jump from 65!
         else:
             vertical_progress = row
-            score += vertical_progress * 65
+            score += vertical_progress * 75
 
-        # NEW STRATEGY: Contest the edges!
-        if col in [0, 5]:  # Extreme edges - now Blue wants these too!
-            score += 50  # High bonus (Red has 65)
+        # EDGE WARFARE: Contest edges even harder!
+        if col in [0, 5]:  # Extreme edges - Blue wants these MORE than Red!
+            score += 70  # HIGHER than Red's 65!
         elif col in [1, 4]:  # Near edges
-            score += 25  # Moderate bonus
-        else:  # Center (de-prioritize old blocking strategy)
-            score += 10  # Small bonus instead of high bonus
+            score += 35  # Increased from 25
+        else:  # Center (still de-prioritized)
+            score += 5  # Even lower - edges only!
 
-        # Reduce row-specific bonuses (less effective)
+        # Row bonuses (still reduced, edges matter more)
         if row in [3, 4]:
-            score += 20  # Reduced from 40
+            score += 15  # Further reduced
         elif row in [2, 5]:
-            score += 10  # Reduced from 20
+            score += 8  # Further reduced
 
-        # Vertical connection (increased)
+        # Vertical connection (even higher)
         connection_score = self.evaluate_vertical_connection(temp_board)
-        score += connection_score * 35  # Increased from 25
+        score += connection_score * 45  # Big increase from 35
 
-        # Territory control (reduced - less important now)
+        # Territory control (minimal - not the focus)
         territory_score = self.evaluate_territory_control(temp_board)
-        score += territory_score * 15  # Reduced from 22
+        score += territory_score * 10  # Further reduced from 15
 
-        # Combat bonus (INCREASED - must win edge battles!)
+        # Combat bonus (MAXIMUM - must dominate edge battles!)
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            score += enemy_adjacent * 38  # Increased from 28
+            score += enemy_adjacent * 45  # Big increase from 38
 
-        # Piece power (increased for combat)
+        # Piece power (MAX for winning edge combat!)
         pip_count = len(piece.get_filled_positions())
-        score += pip_count * 14  # Increased from 11
+        score += pip_count * 18  # Increased from 14
 
         return score
 
@@ -841,8 +847,155 @@ class DefensiveTerritoryAI(AIPlayer):
         return len(columns_with_pieces)
 
 
+class HumanPlayer(Player):
+    """Human player with interactive input"""
+    def __init__(self, color, name):
+        super().__init__(color, name)
+
+    def display_hand(self):
+        """Display all pieces in hand with indices"""
+        print(f"\n{self.name}'s Hand ({len(self.pieces)} pieces remaining):")
+        print("=" * 60)
+        for idx, piece in enumerate(self.pieces):
+            pip_count = len(piece.get_filled_positions())
+            print(f"  [{idx}] {pip_count} PIPs -")
+            # Add indentation to piece display and blank line after
+            for line in piece.display().strip().split('\n'):
+                print(f"      {line}")
+            print()  # Blank line between pieces
+        print("=" * 60)
+
+    def preview_piece(self, piece, rotation):
+        """Show what a piece looks like after rotation"""
+        rotated = piece.rotate(rotation)
+        print(f"\nPiece after {rotation}° rotation:")
+        print(rotated.display())
+
+    def get_valid_positions(self, board, piece, rotation):
+        """Get list of valid (row, col) positions for a piece/rotation"""
+        current_pieces = board.get_player_pieces(self.color)
+        rotated = piece.rotate(rotation)
+        valid_positions = []
+
+        for row in range(board.height):
+            for col in range(board.width):
+                if board.can_place_piece(rotated, row, col, current_pieces):
+                    valid_positions.append((row, col))
+
+        return valid_positions
+
+    def show_legal_moves(self, board, valid_positions):
+        """Display board with legal move positions marked"""
+        if not valid_positions:
+            print("\nNo legal moves available for this piece/rotation!")
+            return
+
+        print(f"\nLegal positions (row, col): {valid_positions}")
+        print("\nBoard with legal positions marked as 'X':")
+
+        # Create a visual representation
+        grid = [[' ' for _ in range(board.width)] for _ in range(board.height)]
+        for row, col in valid_positions:
+            grid[row][col] = 'X'
+
+        # Display grid
+        print("  " + " ".join(str(c) for c in range(board.width)))
+        for row in range(board.height):
+            print(f"{row} " + " ".join(grid[row]))
+
+    def choose_move(self, board):
+        """Interactive move selection for human player"""
+        if not self.has_pieces():
+            return None, None, None, None, None
+
+        print(f"\n{'='*60}")
+        print(f"{self.name}'s Turn")
+        print(f"{'='*60}")
+
+        while True:
+            # Show hand
+            self.display_hand()
+
+            # Get piece selection
+            while True:
+                piece_input = input(f"\nSelect piece (0-{len(self.pieces)-1}) or 'quit': ").strip().lower()
+                if piece_input == 'quit':
+                    print("Exiting game...")
+                    exit(0)
+
+                try:
+                    piece_idx = int(piece_input)
+                    if 0 <= piece_idx < len(self.pieces):
+                        break
+                    else:
+                        print(f"Invalid piece index. Must be 0-{len(self.pieces)-1}")
+                except ValueError:
+                    print("Invalid input. Enter a number or 'quit'")
+
+            piece = self.pieces[piece_idx]
+            pip_count = len(piece.get_filled_positions())
+            print(f"\nSelected piece with {pip_count} PIPs")
+            print(piece.display())
+
+            # Get rotation
+            while True:
+                rotation_input = input("\nRotation (0, 90, 180, 270): ").strip()
+                try:
+                    rotation = int(rotation_input)
+                    if rotation in [0, 90, 180, 270]:
+                        break
+                    else:
+                        print("Invalid rotation. Must be 0, 90, 180, or 270")
+                except ValueError:
+                    print("Invalid input. Enter a number")
+
+            # Show preview
+            self.preview_piece(piece, rotation)
+
+            # Get valid positions
+            valid_positions = self.get_valid_positions(board, piece, rotation)
+            self.show_legal_moves(board, valid_positions)
+
+            if not valid_positions:
+                print("\nNo legal moves for this piece/rotation. Try again.")
+                continue
+
+            # Get position
+            while True:
+                pos_input = input("\nEnter position as 'row col' (e.g., '3 2') or 'back': ").strip().lower()
+
+                if pos_input == 'back':
+                    break  # Go back to piece selection
+
+                try:
+                    parts = pos_input.split()
+                    if len(parts) != 2:
+                        print("Invalid format. Use 'row col' (e.g., '3 2')")
+                        continue
+
+                    row, col = int(parts[0]), int(parts[1])
+
+                    if not (0 <= row < board.height and 0 <= col < board.width):
+                        print(f"Position out of bounds. Row: 0-{board.height-1}, Col: 0-{board.width-1}")
+                        continue
+
+                    if (row, col) not in valid_positions:
+                        print("Illegal move! Choose from the legal positions shown above.")
+                        continue
+
+                    # Valid move found!
+                    rotated_piece = piece.rotate(rotation)
+                    return rotated_piece, row, col, rotation, piece_idx
+
+                except ValueError:
+                    print("Invalid input. Use 'row col' format with numbers")
+
+            # If we get here, user typed 'back'
+            continue
+
+
 class BorderlineGPT:
-    def __init__(self, red_strategy='default', blue_strategy='default'):
+    def __init__(self, red_strategy='default', blue_strategy='default', blue_human=False):
         self.board = GameBoard()
 
         # Select strategy for Red
@@ -851,11 +1004,14 @@ class BorderlineGPT:
         else:
             self.red_player = AIPlayer('R', 'Red AI')
 
-        # Select strategy for Blue
-        if blue_strategy == 'defensive':
+        # Select strategy for Blue (can be human or AI)
+        if blue_human:
+            self.blue_player = HumanPlayer('B', 'Human Player (Blue)')
+        elif blue_strategy == 'defensive':
             self.blue_player = DefensiveTerritoryAI('B', 'Blue AI (Defensive)')
         else:
             self.blue_player = AIPlayer('B', 'Blue AI')
+
         self.current_player = self.red_player
         self.turn_count = 0
         self.game_over = False
@@ -991,5 +1147,20 @@ class BorderlineGPT:
             print("Game ended in a draw!")
 
 if __name__ == "__main__":
-    game = BorderlineGPT()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Borderline - A strategic board game')
+    parser.add_argument('--human_vs_ai', action='store_true',
+                        help='Play as Human (Blue) against AI (Red)')
+    args = parser.parse_args()
+
+    if args.human_vs_ai:
+        print("=" * 60)
+        print("BORDERLINE: Human vs AI Mode")
+        print("You are playing as Blue against Red AI")
+        print("=" * 60)
+        game = BorderlineGPT(red_strategy='aggressive', blue_human=True)
+    else:
+        game = BorderlineGPT()
+
     game.play_game()
