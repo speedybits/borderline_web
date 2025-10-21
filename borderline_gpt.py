@@ -615,42 +615,37 @@ class AggressiveConnectorAI(AIPlayer):
         temp_board = copy.deepcopy(board)
         temp_board.place_piece(piece, row, col)
 
-        # Priority 1: Win condition
+        # Priority 1: Win condition (ULTIMATE)
         if temp_board.check_victory(self.color):
-            score += 10000
+            score += 100000  # MASSIVE - winning is everything!
 
-        # GEN 27: RED DOUBLES DOWN ON DOMINANCE
-        # Blue is contesting edges hard - Red must be FASTER and STRONGER!
+        # GEN 28: VICTORY HUNTER - Optimized to WIN against random play
+        # Focus: Maximum vertical connection, minimal combat, pure speed
 
         if self.color == 'R':
             vertical_progress = row
-            score += vertical_progress * 95  # HUGE jump from 85!
+            score += vertical_progress * 150  # MAXIMUM vertical priority!
         else:
             vertical_progress = 7 - row
-            score += vertical_progress * 95
+            score += vertical_progress * 150
 
+        # Connection is KING - this is how we win
         connection_score = self.evaluate_vertical_connection(temp_board)
-        score += connection_score * 50  # Big increase from 42
+        score += connection_score * 100  # DOUBLED from 50!
 
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            score += enemy_adjacent * 40  # Big increase from 32 - must win fights!
+            score += enemy_adjacent * 15  # REDUCED - avoid combat, focus on connection!
 
         pip_count = len(piece.get_filled_positions())
-        score += pip_count * 20  # Increase from 16 - power matters!
+        score += pip_count * 25  # Increased - bigger pieces help connection
 
-        # Edge strategy (Red MUST dominate edges to beat Blue)
-        if col in [0, 5]:  # Extreme edges - GO HARDER!
-            score += 80  # MASSIVE increase from 65 (beat Blue's 70!)
-        elif col in [1, 4]:  # Near edges
-            score += 30  # Increase from 22
-        else:  # Center
-            score -= 45  # MUCH stronger penalty from -32
-
-        center_col_distance = abs(col - 2.5)
-        score += center_col_distance * 20  # Increase from 16
+        # Single column strategy - pick ONE column and dominate it
+        preferred_col = 3  # Center-right column for straight path
+        col_distance = abs(col - preferred_col)
+        score -= col_distance * 60  # HUGE penalty for straying from preferred column
 
         return score
 
