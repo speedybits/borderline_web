@@ -2,38 +2,126 @@ import random
 import copy
 
 class GamePiece:
-    def __init__(self, player_color):
+    def __init__(self, player_color, pip_pattern=None):
         self.player_color = player_color  # 'R' or 'B'
-        self.pips = self.generate_random_pips()
-    
+        if pip_pattern is not None:
+            # Use provided pip pattern
+            self.pips = pip_pattern
+        else:
+            # Generate random pips (legacy support)
+            self.pips = self.generate_random_pips()
+
+    @staticmethod
+    def create_fixed_piece_set(player_color):
+        """
+        Create the fixed set of 16 starting pieces defined in STARTING_PIECES.md
+        Returns a list of GamePiece objects
+        """
+        pieces = []
+
+        # 3 of these: Vertical line (3 pips)
+        # | |R|_|
+        # |_|R|_|
+        # |_|R|_|
+        pattern1 = [
+            ['_', player_color, '_'],
+            ['_', player_color, '_'],
+            ['_', player_color, '_']
+        ]
+        for _ in range(3):
+            pieces.append(GamePiece(player_color, [row[:] for row in pattern1]))
+
+        # 3 of these: Diagonal (3 pips)
+        # |R| |_|
+        # |_|R|_|
+        # |_|_|R|
+        pattern2 = [
+            [player_color, '_', '_'],
+            ['_', player_color, '_'],
+            ['_', '_', player_color]
+        ]
+        for _ in range(3):
+            pieces.append(GamePiece(player_color, [row[:] for row in pattern2]))
+
+        # 3 of these: T-shape (4 pips)
+        # |R| |R|
+        # |_|R|_|
+        # |_|R|_|
+        pattern3 = [
+            [player_color, '_', player_color],
+            ['_', player_color, '_'],
+            ['_', player_color, '_']
+        ]
+        for _ in range(3):
+            pieces.append(GamePiece(player_color, [row[:] for row in pattern3]))
+
+        # 2 of these: X-shape (5 pips)
+        # |R| |R|
+        # |_|R|_|
+        # |R| |R|
+        pattern4 = [
+            [player_color, '_', player_color],
+            ['_', player_color, '_'],
+            [player_color, '_', player_color]
+        ]
+        for _ in range(2):
+            pieces.append(GamePiece(player_color, [row[:] for row in pattern4]))
+
+        # 2 of these: Plus-shape (5 pips)
+        # | |R| |
+        # |R|R|R|
+        # | |R| |
+        pattern5 = [
+            ['_', player_color, '_'],
+            [player_color, player_color, player_color],
+            ['_', player_color, '_']
+        ]
+        for _ in range(2):
+            pieces.append(GamePiece(player_color, [row[:] for row in pattern5]))
+
+        # 3 of these: Full block (9 pips)
+        # |R|R|R|
+        # |R|R|R|
+        # |R|R|R|
+        pattern6 = [
+            [player_color, player_color, player_color],
+            [player_color, player_color, player_color],
+            [player_color, player_color, player_color]
+        ]
+        for _ in range(3):
+            pieces.append(GamePiece(player_color, [row[:] for row in pattern6]))
+
+        return pieces
+
     def generate_random_pips(self):
+        """Legacy random pip generation (kept for backward compatibility)"""
         pips = [['_' for _ in range(3)] for _ in range(3)]
-        
+
         # Center pip is always filled
         pips[1][1] = self.player_color
-        
+
         # Ensure at least one PIP in each row
         # Row 0: positions (0,0), (0,1), (0,2)
-        # Row 1: center (1,1) already filled, can add (1,0), (1,2)  
+        # Row 1: center (1,1) already filled, can add (1,0), (1,2)
         # Row 2: positions (2,0), (2,1), (2,2)
-        
+
         row_positions = [
             [(0, 0), (0, 1), (0, 2)],  # Row 0
             [(1, 0), (1, 2)],          # Row 1 (center already filled)
             [(2, 0), (2, 1), (2, 2)]   # Row 2
         ]
-        
+
         # Add at least one PIP to rows 0 and 2 (row 1 already has center)
         for row_idx in [0, 2]:
             available_positions = row_positions[row_idx]
             selected_pos = random.choice(available_positions)
             pips[selected_pos[0]][selected_pos[1]] = self.player_color
-        
+
         # Now add random additional PIPs with weighted probability
         # We already have 3 PIPs (center + 2 mandatory row PIPs)
-        remaining_positions = [(i, j) for i in range(3) for j in range(3) 
+        remaining_positions = [(i, j) for i in range(3) for j in range(3)
                               if pips[i][j] == '_']
-        
+
         if remaining_positions:
             # 80% chance for 0 additional PIPs (3 total), 20% chance for 1-6 additional PIPs (4-9 total)
             if random.random() < 0.8:
@@ -43,12 +131,12 @@ class GamePiece:
                 # 20% chance: add 1-6 additional PIPs
                 max_additional = min(6, len(remaining_positions))  # Max 9 total PIPs
                 num_additional = random.randint(1, max_additional)
-            
+
             if num_additional > 0:
                 selected_positions = random.sample(remaining_positions, num_additional)
                 for row, col in selected_positions:
                     pips[row][col] = self.player_color
-        
+
         return pips
     
     def display(self):
@@ -308,11 +396,11 @@ class GameBoard:
         # If no pieces on board and not in starting row, placement is illegal
         return False
     
-    def check_victory(self, player_color):
+    def check_victory(self, player_color, debug=False):
         """Check if player has a contiguous connection across the board lengthwise (8 squares)"""
         # Use flood fill to find all connected PIPs of the player's color
         visited = set()
-        
+
         # Find all PIPs of the player's color
         player_pips = []
         for board_row in range(self.height):
@@ -325,14 +413,18 @@ class GameBoard:
                                 global_pip_row = board_row * 3 + pip_row
                                 global_pip_col = board_col * 3 + pip_col
                                 player_pips.append((global_pip_row, global_pip_col))
-        
+
+        if debug:
+            print(f"\n=== DEBUG: Victory check for {player_color} ===")
+            print(f"Total {player_color} pips: {len(player_pips)}")
+
         # Check each pip to see if it can reach across the board
         for start_pip in player_pips:
             if start_pip in visited:
                 continue
-            
+
             connected_component = self.flood_fill(start_pip, player_pips, visited.copy())
-            
+
             # Check if this component spans the board lengthwise
             # Victory requires spanning from top board row to bottom board row
             # Board row 0 = pip rows 0-2, Board row 7 = pip rows 21-23
@@ -345,39 +437,174 @@ class GameBoard:
             top_end_reached = min_row <= 2  # Touches board row 0
             bottom_end_reached = max_row >= 21  # Touches board row 7
 
+            if debug:
+                print(f"Component starting at {start_pip}: size={len(connected_component)}, rows={min_row}-{max_row}")
+                if top_end_reached and bottom_end_reached:
+                    print(f"  -> VICTORY! Component spans from row {min_row} to {max_row}")
+
             if top_end_reached and bottom_end_reached:
                 return True
-            
+
             visited.update(connected_component)
-        
+
+        if debug:
+            print(f"No winning path found")
+
         return False
     
+    def is_corner_pip(self, global_pip_row, global_pip_col):
+        """Check if a pip at global coordinates is a corner pip of its piece"""
+        # Get the piece position
+        board_row = global_pip_row // 3
+        board_col = global_pip_col // 3
+
+        # Get the pip position within the piece
+        pip_row = global_pip_row % 3
+        pip_col = global_pip_col % 3
+
+        # Corner positions are (0,0), (0,2), (2,0), (2,2)
+        return (pip_row, pip_col) in {(0, 0), (0, 2), (2, 0), (2, 2)}
+
     def flood_fill(self, start, all_pips, visited):
-        """Find all connected PIPs starting from start position"""
+        """
+        Find all connected PIPs starting from start position.
+        Respects adjacency rules:
+        - Orthogonal always valid
+        - Diagonal valid if: within same piece OR both pips are corners
+        """
         stack = [start]
         connected = set()
         pip_set = set(all_pips)
-        
+
         while stack:
             current = stack.pop()
             if current in visited or current in connected:
                 continue
-            
+
             if current not in pip_set:
                 continue
-                
+
             connected.add(current)
             visited.add(current)
-            
-            # Check 4-directional adjacency
+
             row, col = current
+            current_board_row = row // 3
+            current_board_col = col // 3
+            current_is_corner = self.is_corner_pip(row, col)
+
+            # Check orthogonal adjacency (always valid)
             for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                 neighbor = (row + dr, col + dc)
                 if neighbor not in visited and neighbor in pip_set:
                     stack.append(neighbor)
-        
+
+            # Check diagonal adjacency
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                neighbor = (row + dr, col + dc)
+                if neighbor not in visited and neighbor in pip_set:
+                    neighbor_board_row = neighbor[0] // 3
+                    neighbor_board_col = neighbor[1] // 3
+
+                    # Diagonal valid if: same piece OR both are corners
+                    same_piece = (current_board_row == neighbor_board_row and
+                                current_board_col == neighbor_board_col)
+                    both_corners = (current_is_corner and
+                                  self.is_corner_pip(neighbor[0], neighbor[1]))
+
+                    if same_piece or both_corners:
+                        stack.append(neighbor)
+
         return connected
-    
+
+    def check_piece_connected_to_home(self, board_row, board_col):
+        """
+        Check if a piece at (board_row, board_col) has a contiguous pip connection
+        back to its home row (Row 0 for Red, Row 7 for Blue)
+
+        Returns True if connected to home, False otherwise
+        """
+        piece = self.grid[board_row][board_col]
+        if not piece:
+            return False
+
+        color = piece.player_color
+        home_row = 0 if color == 'R' else 7
+
+        # Get all pips of this color on the board
+        all_pips = []
+        for br in range(self.height):
+            for bc in range(self.width):
+                p = self.grid[br][bc]
+                if p and p.player_color == color:
+                    for pip_row in range(3):
+                        for pip_col in range(3):
+                            if p.pips[pip_row][pip_col] == color:
+                                global_pip_row = br * 3 + pip_row
+                                global_pip_col = bc * 3 + pip_col
+                                all_pips.append((global_pip_row, global_pip_col))
+
+        # Get pips from the current piece
+        piece_pips = []
+        for pip_row in range(3):
+            for pip_col in range(3):
+                if piece.pips[pip_row][pip_col] == color:
+                    global_pip_row = board_row * 3 + pip_row
+                    global_pip_col = board_col * 3 + pip_col
+                    piece_pips.append((global_pip_row, global_pip_col))
+
+        if not piece_pips:
+            return False
+
+        # Use flood fill from any pip in this piece to see if we can reach home row
+        visited = set()
+        start_pip = piece_pips[0]
+        connected_component = self.flood_fill(start_pip, all_pips, visited)
+
+        # Check if any pip in the connected component reaches the home row
+        home_pip_rows = [home_row * 3, home_row * 3 + 1, home_row * 3 + 2]
+        for pip_pos in connected_component:
+            if pip_pos[0] in home_pip_rows:
+                return True
+
+        return False
+
+    def remove_disconnected_pieces(self, losing_color):
+        """
+        After combat, remove any pieces of the losing color that don't have a contiguous
+        connection back to their home row. Returns list of removed pieces.
+
+        Args:
+            losing_color: 'R' or 'B' - the color that lost the combat
+        """
+        removed_pieces = []
+
+        # Check only pieces of the losing color
+        pieces_to_check = []
+        for board_row in range(self.height):
+            for board_col in range(self.width):
+                piece = self.grid[board_row][board_col]
+                if piece and piece.player_color == losing_color:
+                    pieces_to_check.append((board_row, board_col))
+
+        # FIRST: Identify ALL disconnected pieces (before removing any)
+        disconnected_positions = []
+        for board_row, board_col in pieces_to_check:
+            piece = self.grid[board_row][board_col]
+            if piece and not self.check_piece_connected_to_home(board_row, board_col):
+                disconnected_positions.append((board_row, board_col))
+
+        # SECOND: Remove all disconnected pieces
+        for board_row, board_col in disconnected_positions:
+            removed_piece = self.remove_piece(board_row, board_col)
+            if removed_piece:
+                removed_pieces.append({
+                    'row': board_row,
+                    'col': board_col,
+                    'piece': removed_piece
+                })
+
+        return removed_pieces
+
     def resolve_combat(self, new_piece, new_row, new_col, adjacent_pips):
         """Handle combat when different colored PIPs are adjacent
 
@@ -449,7 +676,8 @@ class Player:
     def __init__(self, color, name):
         self.color = color  # 'R' or 'B'
         self.name = name
-        self.pieces = [GamePiece(color) for _ in range(15)]
+        # Use fixed piece set instead of random generation
+        self.pieces = GamePiece.create_fixed_piece_set(color)
         self.pieces_on_board = []
     
     def has_pieces(self):
@@ -619,33 +847,34 @@ class AggressiveConnectorAI(AIPlayer):
         if temp_board.check_victory(self.color):
             score += 100000  # MASSIVE - winning is everything!
 
-        # GEN 28: VICTORY HUNTER - Optimized to WIN against random play
-        # Focus: Maximum vertical connection, minimal combat, pure speed
+        # GEN 29: HYPER-FOCUSED SPRINT - Even more extreme single-path strategy
+        # Gen 28 won 2/100 games. Double down on what worked!
 
         if self.color == 'R':
             vertical_progress = row
-            score += vertical_progress * 150  # MAXIMUM vertical priority!
+            score += vertical_progress * 200  # EXTREME vertical priority!
         else:
             vertical_progress = 7 - row
-            score += vertical_progress * 150
+            score += vertical_progress * 200
 
-        # Connection is KING - this is how we win
+        # Connection is EVERYTHING - maximize this above all else
         connection_score = self.evaluate_vertical_connection(temp_board)
-        score += connection_score * 100  # DOUBLED from 50!
+        score += connection_score * 150  # Up from 100!
 
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            score += enemy_adjacent * 15  # REDUCED - avoid combat, focus on connection!
+            score += enemy_adjacent * 5  # MINIMAL - avoid all combat!
 
         pip_count = len(piece.get_filled_positions())
-        score += pip_count * 25  # Increased - bigger pieces help connection
+        score += pip_count * 30  # Bigger pieces = better connections
 
-        # Single column strategy - pick ONE column and dominate it
-        preferred_col = 3  # Center-right column for straight path
+        # ULTRA-FOCUSED: Stick to column 2 or 3 (center columns)
+        # Try column 2 this time for variety
+        preferred_col = 2
         col_distance = abs(col - preferred_col)
-        score -= col_distance * 60  # HUGE penalty for straying from preferred column
+        score -= col_distance * 100  # MASSIVE penalty for deviation!
 
         return score
 
@@ -1143,8 +1372,25 @@ class BorderlineGPT:
                 else:
                     print(f"Defending piece is captured and converted to {combat['attacker_color']}!")
 
+                # POST-COMBAT: Check if any remaining defending pieces became disconnected
+                # (only when defender loses)
+                defender_color = combat['defender_color']
+                disconnected = self.board.remove_disconnected_pieces(defender_color)
+                if disconnected:
+                    print(f"\nPOST-COMBAT CONNECTIVITY CHECK:")
+                    print(f"  {len(disconnected)} {defender_color} piece(s) disconnected from home row - returned to hand")
+                    for piece_info in disconnected:
+                        print(f"    Disconnected piece at ({piece_info['row']}, {piece_info['col']})")
+                    defender_player = self.red_player if defender_color == 'R' else self.blue_player
+                    for piece_info in disconnected:
+                        defender_player.add_piece_back(piece_info['piece'])
+                else:
+                    print(f"\nPOST-COMBAT CONNECTIVITY CHECK:")
+                    print(f"  No defending pieces are disconnected from the home row")
+
         # Check victory
-        if self.board.check_victory(self.current_player.color):
+        victory = self.board.check_victory(self.current_player.color, debug=True)
+        if victory:
             self.winner = self.current_player
             self.game_over = True
             print(f"\n🎉 VICTORY! {self.current_player.name} wins! 🎉")
