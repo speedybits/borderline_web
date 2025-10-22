@@ -847,8 +847,19 @@ class AggressiveConnectorAI(AIPlayer):
         if temp_board.check_victory(self.color):
             score += 100000  # MASSIVE - winning is everything!
 
-        # GEN 29: HYPER-FOCUSED SPRINT - Even more extreme single-path strategy
-        # Gen 28 won 2/100 games. Double down on what worked!
+        # Priority 2: Check if this move creates a battle opportunity that could win the game
+        battle_value = self.evaluate_battle_opportunity(board, piece, row, col, current_pieces)
+        score += battle_value
+
+        # Priority 3: Path continuity - ensure we're building a continuous path
+        pieces_remaining = len([p for p in current_pieces if p is not None])
+        if pieces_remaining < 8:  # Running low on pieces!
+            # Be VERY selective - only build on existing path
+            path_continuity = self.evaluate_path_continuity(temp_board, row, col)
+            score += path_continuity * 300  # HUGE bonus for staying on path
+
+        # GEN 30: Improved with battle awareness, lookahead, and path continuity
+        # Focus on vertical progress but also exploit battle opportunities and ensure continuous paths
 
         if self.color == 'R':
             vertical_progress = row
@@ -865,7 +876,7 @@ class AggressiveConnectorAI(AIPlayer):
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
         if enemy_adjacent > 0:
-            score += enemy_adjacent * 5  # MINIMAL - avoid all combat!
+            score += enemy_adjacent * 5  # MINIMAL - avoid all combat unless strategic!
 
         pip_count = len(piece.get_filled_positions())
         score += pip_count * 30  # Bigger pieces = better connections
@@ -877,6 +888,108 @@ class AggressiveConnectorAI(AIPlayer):
         score -= col_distance * 100  # MASSIVE penalty for deviation!
 
         return score
+
+    def evaluate_battle_opportunity(self, board, piece, row, col, current_pieces):
+        """Evaluate if winning a battle at this position could lead to victory
+
+        Strategy:
+        1. Check which enemy pieces would be in combat
+        2. Simulate winning the combat and removing disconnected enemy pieces
+        3. Check if that would create a winning path
+        """
+        # Check if this move would trigger combat
+        all_pieces = board.get_player_pieces('R') + board.get_player_pieces('B')
+        adjacent_pips = board.check_pip_adjacency(piece, row, col, all_pieces)
+        enemy_contacts = [adj for adj in adjacent_pips if not adj['same_color']]
+
+        if not enemy_contacts:
+            return 0  # No combat, no opportunity
+
+        # Get enemy color
+        enemy_color = 'B' if self.color == 'R' else 'R'
+
+        # Simulate placing the piece and winning the combat
+        temp_board = copy.deepcopy(board)
+        temp_board.place_piece(piece, row, col)
+
+        # Simulate removing disconnected enemy pieces if we win
+        # (We'll check what would happen if enemy loses)
+        removed_positions = []
+        for board_row in range(temp_board.height):
+            for board_col in range(temp_board.width):
+                enemy_piece = temp_board.grid[board_row][board_col]
+                if enemy_piece and enemy_piece.player_color == enemy_color:
+                    if not temp_board.check_piece_connected_to_home(board_row, board_col):
+                        removed_positions.append((board_row, board_col))
+
+        # Create a board state with those pieces removed
+        victory_test_board = copy.deepcopy(temp_board)
+        for r, c in removed_positions:
+            victory_test_board.remove_piece(r, c)
+
+        # Check if removing those pieces gives us victory
+        if victory_test_board.check_victory(self.color):
+            # This battle could win the game!
+            return 50000  # Very high but less than immediate win
+
+        # Even if it doesn't win immediately, check if it improves our connection significantly
+        old_connection = self.evaluate_vertical_connection(temp_board)
+        new_connection = self.evaluate_vertical_connection(victory_test_board)
+        connection_improvement = new_connection - old_connection
+
+        if connection_improvement > 5:  # Significant improvement
+            return connection_improvement * 500  # Reward proportional to improvement
+
+        return 0
+
+    def evaluate_path_continuity(self, board, new_row, new_col):
+        """Check if the new piece connects well to existing pieces
+
+        This prevents leaving gaps when running low on pieces.
+        Returns a score based on how well this piece extends the existing path.
+        """
+        # Get all our existing pieces
+        player_pips = []
+        for board_row in range(board.height):
+            for board_col in range(board.width):
+                piece = board.grid[board_row][board_col]
+                if piece and piece.player_color == self.color:
+                    for pip_row in range(3):
+                        for pip_col in range(3):
+                            if piece.pips[pip_row][pip_col] == self.color:
+                                global_pip_row = board_row * 3 + pip_row
+                                global_pip_col = board_col * 3 + pip_col
+                                player_pips.append((global_pip_row, global_pip_col))
+
+        if not player_pips:
+            return 0  # First piece, can't evaluate continuity
+
+        # Check if this new piece's position has pips that connect to existing pips
+        new_piece = board.grid[new_row][new_col]
+        if not new_piece:
+            return 0
+
+        new_pips = []
+        for pip_row in range(3):
+            for pip_col in range(3):
+                if new_piece.pips[pip_row][pip_col] == self.color:
+                    global_pip_row = new_row * 3 + pip_row
+                    global_pip_col = new_col * 3 + pip_col
+                    new_pips.append((global_pip_row, global_pip_col))
+
+        # Count how many of the new pips are adjacent to existing pips
+        connected_count = 0
+        for new_pip in new_pips:
+            for existing_pip in player_pips:
+                # Check if adjacent (orthogonal or diagonal)
+                dr = abs(new_pip[0] - existing_pip[0])
+                dc = abs(new_pip[1] - existing_pip[1])
+                if dr <= 1 and dc <= 1 and not (dr == 0 and dc == 0):
+                    connected_count += 1
+                    break  # Count each new pip only once
+
+        # Return score based on how many connections we made
+        return connected_count
 
     def evaluate_vertical_connection(self, board):
         """Calculate the longest vertical span of connected pips"""
