@@ -1624,21 +1624,32 @@ if __name__ == "__main__":
                         help='Play as Human (Blue) against AI (Red)')
     parser.add_argument('--blue_random', action='store_true',
                         help='Blue makes random legal moves, Red uses AI')
+    parser.add_argument('--gui', action='store_true',
+                        help='Launch TRON-style web GUI on http://localhost:5000')
     args = parser.parse_args()
 
-    if args.human_vs_ai:
+    if args.gui:
+        print("=" * 60)
+        print("BORDERLINE: TRON GUI Mode")
+        print("=" * 60)
+        print("Starting web server...")
+        import subprocess
+        import sys
+        subprocess.run([sys.executable, 'gui_server.py'])
+    elif args.human_vs_ai:
         print("=" * 60)
         print("BORDERLINE: Human vs AI Mode")
         print("You are playing as Blue against Red AI")
         print("=" * 60)
         game = BorderlineGPT(red_strategy='aggressive', blue_human=True)
+        game.play_game()
     elif args.blue_random:
         print("=" * 60)
         print("BORDERLINE: AI vs Random Mode")
         print("Red AI (Aggressive) vs Random Blue")
         print("=" * 60)
         game = BorderlineGPT(red_strategy='aggressive', blue_random=True)
+        game.play_game()
     else:
         game = BorderlineGPT()
-
-    game.play_game()
+        game.play_game()

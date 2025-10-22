@@ -1,0 +1,371 @@
+/* TRON-Inspired Aesthetic CSS */
+
+:root {
+    --bg-black: #0a0a0a;
+    --grid-line: #1a1a2e;
+    --red-neon: #ff0055;
+    --blue-neon: #00d4ff;
+    --green-accent: #00ff88;
+    --text-light: #e0e0e0;
+    --amber: #ffaa00;
+}
+
+body {
+    background: var(--bg-black);
+    background-image:
+        radial-gradient(circle at 50% 50%, rgba(26, 26, 46, 0.3) 1px, transparent 1px);
+    background-size: 50px 50px;
+    color: var(--text-light);
+}
+
+/* Start Screen Styling */
+.game-logo {
+    color: var(--green-accent);
+    text-shadow:
+        0 0 10px var(--green-accent),
+        0 0 20px var(--green-accent),
+        0 0 30px var(--green-accent),
+        0 0 40px var(--green-accent);
+    animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+    0%, 100% {
+        text-shadow:
+            0 0 10px currentColor,
+            0 0 20px currentColor,
+            0 0 30px currentColor;
+    }
+    50% {
+        text-shadow:
+            0 0 20px currentColor,
+            0 0 40px currentColor,
+            0 0 60px currentColor,
+            0 0 80px currentColor;
+    }
+}
+
+.subtitle {
+    color: var(--green-accent);
+    text-shadow: 0 0 10px var(--green-accent);
+}
+
+.menu-btn {
+    color: var(--green-accent);
+    border-color: var(--green-accent);
+    box-shadow: 0 0 10px var(--green-accent);
+}
+
+.menu-btn:hover {
+    background: var(--green-accent);
+    color: var(--bg-black);
+    box-shadow:
+        0 0 20px var(--green-accent),
+        0 0 40px var(--green-accent),
+        inset 0 0 10px var(--bg-black);
+}
+
+/* Game Header */
+.game-header {
+    border-bottom-color: var(--grid-line);
+    background: linear-gradient(180deg, rgba(26, 26, 46, 0.3) 0%, transparent 100%);
+}
+
+.game-title {
+    color: var(--green-accent);
+    text-shadow: 0 0 15px var(--green-accent);
+}
+
+.turn-indicator {
+    animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.turn-indicator[data-player="R"] {
+    color: var(--red-neon);
+}
+
+.turn-indicator[data-player="B"] {
+    color: var(--blue-neon);
+}
+
+/* Player Sidebars */
+.red-sidebar {
+    border-color: var(--red-neon);
+    background: rgba(255, 0, 85, 0.05);
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.2);
+}
+
+.red-sidebar .sidebar-header {
+    color: var(--red-neon);
+    border-bottom-color: var(--red-neon);
+    text-shadow: 0 0 10px var(--red-neon);
+}
+
+.red-sidebar .pieces-count {
+    color: var(--red-neon);
+}
+
+.blue-sidebar {
+    border-color: var(--blue-neon);
+    background: rgba(0, 212, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+.blue-sidebar .sidebar-header {
+    color: var(--blue-neon);
+    border-bottom-color: var(--blue-neon);
+    text-shadow: 0 0 10px var(--blue-neon);
+}
+
+.blue-sidebar .pieces-count {
+    color: var(--blue-neon);
+}
+
+/* Piece Previews */
+.piece-preview {
+    background: rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+}
+
+.red-sidebar .piece-preview {
+    border-color: var(--red-neon);
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
+}
+
+.red-sidebar .piece-preview:hover,
+.red-sidebar .piece-preview.selected {
+    box-shadow:
+        0 0 15px var(--red-neon),
+        0 0 30px var(--red-neon);
+}
+
+.blue-sidebar .piece-preview {
+    border-color: var(--blue-neon);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.blue-sidebar .piece-preview:hover,
+.blue-sidebar .piece-preview.selected {
+    box-shadow:
+        0 0 15px var(--blue-neon),
+        0 0 30px var(--blue-neon);
+}
+
+.piece-power {
+    background: rgba(0, 0, 0, 0.8);
+    color: var(--amber);
+    text-shadow: 0 0 5px var(--amber);
+    border: 1px solid var(--amber);
+}
+
+/* Game Canvas */
+#game-canvas {
+    border-color: var(--grid-line);
+    background: radial-gradient(ellipse at center, rgba(26, 26, 46, 0.2) 0%, rgba(10, 10, 10, 0.9) 100%);
+    box-shadow:
+        0 0 30px rgba(0, 255, 136, 0.2),
+        inset 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Dice Zone */
+.dice-container {
+    background: rgba(10, 10, 10, 0.95);
+    border-color: var(--green-accent);
+    box-shadow:
+        0 0 20px var(--green-accent),
+        inset 0 0 20px rgba(0, 255, 136, 0.1);
+}
+
+.dice-label {
+    color: var(--green-accent);
+    text-shadow: 0 0 10px var(--green-accent);
+}
+
+.red-dice {
+    background: rgba(255, 0, 85, 0.1);
+    border-color: var(--red-neon);
+    color: var(--red-neon);
+    box-shadow:
+        0 0 15px var(--red-neon),
+        inset 0 0 10px rgba(255, 0, 85, 0.2);
+}
+
+.blue-dice {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--blue-neon);
+    color: var(--blue-neon);
+    box-shadow:
+        0 0 15px var(--blue-neon),
+        inset 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
+.vs-text {
+    color: var(--green-accent);
+    text-shadow: 0 0 8px var(--green-accent);
+}
+
+/* Status Container */
+.status-container {
+    border-top-color: var(--grid-line);
+    background: linear-gradient(0deg, rgba(26, 26, 46, 0.3) 0%, transparent 100%);
+}
+
+.status-header {
+    color: var(--green-accent);
+    text-shadow: 0 0 8px var(--green-accent);
+}
+
+.status-message {
+    color: var(--text-light);
+}
+
+/* Victory Screen */
+.victory-overlay {
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.victory-text {
+    animation: victory-appear 1s ease, glow-pulse 2s ease-in-out infinite 1s;
+}
+
+.victory-text[data-winner="R"] {
+    color: var(--red-neon);
+}
+
+.victory-text[data-winner="B"] {
+    color: var(--blue-neon);
+}
+
+/* AI Thinking */
+.ai-thinking {
+    background: rgba(10, 10, 10, 0.95);
+    border-color: var(--green-accent);
+    box-shadow:
+        0 0 30px var(--green-accent),
+        inset 0 0 20px rgba(0, 255, 136, 0.1);
+}
+
+.thinking-text {
+    color: var(--green-accent);
+    text-shadow: 0 0 15px var(--green-accent);
+}
+
+.thinking-dots {
+    color: var(--green-accent);
+}
+
+/* Scrollbar TRON Styling */
+::-webkit-scrollbar-thumb {
+    background: var(--green-accent);
+    box-shadow: 0 0 10px var(--green-accent);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--green-accent);
+    box-shadow: 0 0 15px var(--green-accent);
+}
+
+/* Grid Lines Effect (Canvas will use this as reference) */
+.grid-line {
+    stroke: var(--grid-line);
+    stroke-width: 2;
+}
+
+.grid-line-glow {
+    stroke: var(--green-accent);
+    stroke-width: 2;
+    filter: drop-shadow(0 0 5px var(--green-accent));
+}
+
+/* Pip Colors (for canvas reference) */
+.pip-red {
+    fill: var(--red-neon);
+    filter:
+        drop-shadow(0 0 5px var(--red-neon))
+        drop-shadow(0 0 10px var(--red-neon))
+        drop-shadow(0 0 15px var(--red-neon));
+}
+
+.pip-blue {
+    fill: var(--blue-neon);
+    filter:
+        drop-shadow(0 0 5px var(--blue-neon))
+        drop-shadow(0 0 10px var(--blue-neon))
+        drop-shadow(0 0 15px var(--blue-neon));
+}
+
+/* Particle Effect for Victory (optional enhancement) */
+@keyframes particle-float {
+    0% {
+        transform: translateY(0) translateX(0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100px) translateX(var(--float-x, 20px)) scale(0);
+        opacity: 0;
+    }
+}
+
+/* Hover Effects */
+.board-cell-hover {
+    stroke: currentColor;
+    stroke-width: 3;
+    filter: drop-shadow(0 0 10px currentColor);
+}
+
+/* Combat Highlight Effect */
+.combat-highlight {
+    animation: combat-flash 0.5s ease-in-out 3;
+}
+
+@keyframes combat-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Turn Transition Effect */
+.turn-transition {
+    animation: turn-change 0.8s ease;
+}
+
+@keyframes turn-change {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Loading Animation (if needed) */
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid transparent;
+    border-top-color: var(--green-accent);
+    border-radius: 50%;
+    animation: spinner-rotate 1s linear infinite;
+}
+
+@keyframes spinner-rotate {
+    to { transform: rotate(360deg); }
+}
+
+/* Reflection Effect on Black Background */
+.reflection-surface {
+    position: relative;
+}
+
+.reflection-surface::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        transparent 60%,
+        rgba(255, 255, 255, 0.02) 100%
+    );
+    pointer-events: none;
+}

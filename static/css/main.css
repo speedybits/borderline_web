@@ -1,0 +1,407 @@
+/* Borderline Main CSS - Base Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+
+.screen.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Start Screen */
+#start-screen {
+    justify-content: center;
+    align-items: center;
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.game-logo {
+    font-size: 6em;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    margin-bottom: 20px;
+}
+
+.subtitle {
+    font-size: 1.5em;
+    letter-spacing: 0.3em;
+    opacity: 0.7;
+}
+
+.menu-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 400px;
+}
+
+.menu-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2em;
+    font-weight: 700;
+    padding: 20px 40px;
+    border: 3px solid;
+    background: transparent;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.menu-btn:hover {
+    transform: scale(1.05);
+}
+
+.menu-btn:active {
+    transform: scale(0.95);
+}
+
+/* Game Screen */
+#game-screen {
+    flex-direction: column;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    border-bottom: 2px solid;
+}
+
+.game-title {
+    font-size: 2em;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+}
+
+.turn-indicator {
+    font-size: 2.5em;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+}
+
+.turn-count {
+    font-size: 1.5em;
+    opacity: 0.8;
+}
+
+.game-container {
+    display: flex;
+    flex: 1;
+    padding: 20px;
+    gap: 20px;
+    overflow: hidden;
+}
+
+/* Player Sidebars */
+.player-sidebar {
+    width: 200px;
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sidebar-header {
+    font-size: 1.2em;
+    font-weight: 700;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid;
+}
+
+.pieces-count {
+    font-size: 1.5em;
+    font-weight: 700;
+    text-align: center;
+}
+
+.pieces-pool {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.piece-preview {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2px solid;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.piece-preview:hover {
+    transform: scale(1.1);
+}
+
+.piece-preview.selected {
+    transform: scale(1.15);
+}
+
+.piece-power {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 0.9em;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+/* Board Container */
+.board-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+#game-canvas {
+    border: 3px solid;
+    border-radius: 8px;
+    cursor: crosshair;
+}
+
+.hover-preview {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0.5;
+    display: none;
+}
+
+/* Dice Zone */
+.dice-zone {
+    position: absolute;
+    bottom: 120px;
+    left: 40px;
+    z-index: 100;
+}
+
+.dice-zone.hidden {
+    display: none;
+}
+
+.dice-container {
+    border: 3px solid;
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 300px;
+}
+
+.dice-label {
+    font-size: 1.2em;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.dice-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 20px;
+}
+
+.dice {
+    width: 60px;
+    height: 60px;
+    border: 3px solid;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    font-weight: 900;
+    position: relative;
+}
+
+.dice-value {
+    display: block;
+}
+
+.vs-text {
+    font-size: 1.5em;
+    font-weight: 700;
+    opacity: 0.6;
+}
+
+.dice.tumbling {
+    animation: dice-tumble 1s ease-in-out;
+}
+
+@keyframes dice-tumble {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(90deg) scale(1.2); }
+    50% { transform: rotate(180deg) scale(0.8); }
+    75% { transform: rotate(270deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Status Container */
+.status-container {
+    border-top: 2px solid;
+    padding: 15px 40px;
+    max-height: 150px;
+}
+
+.status-header {
+    font-size: 1em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    opacity: 0.8;
+}
+
+.status-messages {
+    height: 90px;
+    overflow-y: auto;
+    font-size: 0.9em;
+    line-height: 1.6;
+}
+
+.status-message {
+    padding: 4px 0;
+    opacity: 0.9;
+}
+
+.status-message:last-child {
+    opacity: 1;
+    font-weight: 700;
+}
+
+/* Victory Screen */
+.victory-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.victory-overlay.hidden {
+    display: none;
+}
+
+.victory-content {
+    text-align: center;
+}
+
+.victory-text {
+    font-size: 6em;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    margin-bottom: 60px;
+    animation: victory-appear 1s ease;
+}
+
+@keyframes victory-appear {
+    0% {
+        transform: translateY(-100vh) scale(0);
+        opacity: 0;
+    }
+    60% {
+        transform: translateY(0) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0) scale(1);
+    }
+}
+
+.victory-buttons {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+}
+
+/* AI Thinking Indicator */
+.ai-thinking {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 500;
+    padding: 40px 60px;
+    border: 3px solid;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.ai-thinking.hidden {
+    display: none;
+}
+
+.thinking-text {
+    font-size: 2em;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    margin-bottom: 15px;
+}
+
+.thinking-dots {
+    font-size: 2em;
+    font-weight: 900;
+}
+
+.thinking-dots span {
+    animation: dot-pulse 1.5s infinite;
+    opacity: 0;
+}
+
+.thinking-dots span:nth-child(2) {
+    animation-delay: 0.5s;
+}
+
+.thinking-dots span:nth-child(3) {
+    animation-delay: 1s;
+}
+
+@keyframes dot-pulse {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+}
