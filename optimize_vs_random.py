@@ -56,9 +56,9 @@ def test_strategy(red_strategy, num_games=100, description=""):
 
     return results, red_pct, total_pct
 
-# Test different strategies (focusing on aggressive which performed best)
+# Test GEN 30 with FIXED draw rules (players continue until both out of pieces)
 strategies = [
-    ('aggressive', 'Aggressive Strategy vs Random (NO TURN LIMIT)'),
+    ('aggressive', 'GEN 30: Fixed Draw Rules (Players Continue w/ Pieces)'),
 ]
 
 results_summary = []

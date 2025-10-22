@@ -19,4 +19,13 @@ ENV/
 
 # Game state files (temporary)
 game_state.json
+game.txt
 *.log
+
+# Experimental/temporary files
+Claude_game_notes.md
+INTERACTIVE_GAME_ENHANCEMENTS.md
+interactive_game_output.txt
+llm_plays_game.py
+llm_vs_ai.py
+play_interactive.py
