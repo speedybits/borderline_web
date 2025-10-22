@@ -90,10 +90,19 @@ def handle_place_piece(data):
 
     print(f"Placement request: ({row}, {col})")
 
-    # Create piece from configuration
-    piece = Piece(current_game.current_player.color)
-    if piece_config:
-        piece.pips = piece_config
+    # For Phase 1, use the AI player's choose_move to get a valid piece
+    # or create a simple full piece
+    # Get any piece from the player's available pieces
+    if not current_game.current_player.has_pieces():
+        emit('placement_error', {
+            'message': 'No pieces remaining',
+            'row': row,
+            'col': col
+        })
+        return
+
+    # Use the first available piece from the player
+    piece = current_game.current_player.pieces[0]
 
     # Validate placement
     if not current_game.board.is_valid_placement(row, col):
