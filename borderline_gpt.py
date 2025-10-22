@@ -875,14 +875,15 @@ class AggressiveConnectorAI(AIPlayer):
         all_pieces = temp_board.get_player_pieces('R') + temp_board.get_player_pieces('B')
         adjacent_pips = temp_board.check_pip_adjacency(piece, row, col, all_pieces)
         enemy_adjacent = sum(1 for adj in adjacent_pips if not adj['same_color'])
+
+        # GEN 30: Minimal combat consideration
         if enemy_adjacent > 0:
-            score += enemy_adjacent * 5  # MINIMAL - avoid all combat unless strategic!
+            score += enemy_adjacent * 5  # Small bonus for potential combat
 
         pip_count = len(piece.get_filled_positions())
         score += pip_count * 30  # Bigger pieces = better connections
 
-        # ULTRA-FOCUSED: Stick to column 2 or 3 (center columns)
-        # Try column 2 this time for variety
+        # ULTRA-FOCUSED: Stick to column 2 (center column for straight path)
         preferred_col = 2
         col_distance = abs(col - preferred_col)
         score -= col_distance * 100  # MASSIVE penalty for deviation!
@@ -1025,6 +1026,73 @@ class AggressiveConnectorAI(AIPlayer):
                 best_vertical_span = max(best_vertical_span, vertical_span)
 
         return best_vertical_span
+
+    def evaluate_gap_filling(self, board, new_row, new_col):
+        """Identify the largest gap in our vertical path and reward moves that fill it
+
+        Strategy:
+        1. Find all rows that have our pips (in any column)
+        2. Find the largest vertical gap between rows
+        3. If this move places a piece in that gap, give high score
+        """
+        # Get all rows where we have pips
+        player_rows = set()
+        for board_row in range(board.height):
+            for board_col in range(board.width):
+                piece = board.grid[board_row][board_col]
+                if piece and piece.player_color == self.color:
+                    for pip_row in range(3):
+                        for pip_col in range(3):
+                            if piece.pips[pip_row][pip_col] == self.color:
+                                global_pip_row = board_row * 3 + pip_row
+                                player_rows.add(global_pip_row)
+
+        if not player_rows:
+            return 0  # No existing pieces, can't evaluate gaps
+
+        # Sort rows to find gaps
+        sorted_rows = sorted(player_rows)
+
+        # Find the largest gap
+        max_gap = 0
+        gap_start = None
+        gap_end = None
+
+        for i in range(len(sorted_rows) - 1):
+            gap_size = sorted_rows[i+1] - sorted_rows[i]
+            if gap_size > max_gap:
+                max_gap = gap_size
+                gap_start = sorted_rows[i]
+                gap_end = sorted_rows[i+1]
+
+        if max_gap <= 1:
+            return 0  # No significant gaps
+
+        # Check if the new piece falls in this gap
+        new_piece = board.grid[new_row][new_col]
+        if not new_piece:
+            return 0
+
+        # Get the rows that this new piece occupies
+        new_piece_rows = set()
+        for pip_row in range(3):
+            for pip_col in range(3):
+                if new_piece.pips[pip_row][pip_col] == self.color:
+                    global_pip_row = new_row * 3 + pip_row
+                    new_piece_rows.add(global_pip_row)
+
+        # Check if any of the new piece's rows fall in the gap
+        in_gap = False
+        for row in new_piece_rows:
+            if gap_start < row < gap_end:
+                in_gap = True
+                break
+
+        if in_gap:
+            # Return score proportional to gap size
+            return max_gap * 5  # Bigger gaps = more important to fill
+
+        return 0
 
 
 class DefensiveTerritoryAI(AIPlayer):
@@ -1420,6 +1488,15 @@ class BorderlineGPT:
 
         if result[0] is None:
             print(f"{self.current_player.name} has no valid moves - skipping turn")
+            # Check if both players have no valid moves - if so, game is a draw
+            self.switch_player()
+            other_player_result = self.current_player.choose_move(self.board)
+            if other_player_result[0] is None:
+                # Both players have no valid moves - stalemate
+                self.game_over = True
+                print("Game Over: Stalemate - no valid moves for either player!")
+                return
+            # Switch back to continue with other player's turn
             self.switch_player()
             self.turn_count += 1
             return
