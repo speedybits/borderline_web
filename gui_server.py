@@ -4,9 +4,10 @@ Borderline GUI Server
 Flask + Socket.IO server for web-based GUI
 """
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
-from borderline_gpt import BorderlineGPT, Board, Piece, HumanPlayer, AIPlayer, RandomPlayer
+import borderline_gpt
+from borderline_gpt import BorderlineGPT
 import sys
 import os
 
@@ -129,8 +130,8 @@ def handle_place_piece(data):
         current_game.switch_player()
         current_game.turn_count += 1
 
-        # Check if current player is AI
-        if isinstance(current_game.current_player, (AIPlayer, RandomPlayer)):
+        # Check if current player is AI (has choose_move method)
+        if hasattr(current_game.current_player, 'choose_move'):
             socketio.sleep(0.5)  # Brief pause for visualization
             process_ai_turn()
 
@@ -141,54 +142,57 @@ def process_ai_turn():
     if not current_game or current_game.game_over:
         return
 
-    # Notify that AI is thinking
-    emit('ai_thinking', {
-        'player': current_game.current_player.color
-    }, broadcast=True)
-
-    # Get AI move
-    result = current_game.current_player.choose_move(current_game.board)
-
-    if result[0] is None:
-        # AI has no valid moves
-        emit('ai_no_moves', {
+    # Check if current player is AI (not human)
+    if hasattr(current_game.current_player, 'choose_move'):
+        # Notify that AI is thinking
+        emit('ai_thinking', {
             'player': current_game.current_player.color
         }, broadcast=True)
-        current_game.switch_player()
-        current_game.turn_count += 1
-        return
 
-    row, col, piece = result
+        # Get AI move
+        result = current_game.current_player.choose_move(current_game.board)
 
-    # Place piece
-    current_game.board.grid[row][col] = piece
-    current_game.current_player.pieces.remove(piece)
+        if result[0] is None:
+            # AI has no valid moves
+            emit('ai_no_moves', {
+                'player': current_game.current_player.color
+            }, broadcast=True)
+            current_game.switch_player()
+            current_game.turn_count += 1
+            return
 
-    # Check for combat
-    combat_result = current_game.board.check_combat(row, col, piece)
+        row, col, piece = result
 
-    # Check for victory
-    current_game.check_victory()
+        # Place piece
+        current_game.board.grid[row][col] = piece
+        current_game.current_player.pieces.remove(piece)
 
-    # Build response
-    response = {
-        'row': row,
-        'col': col,
-        'piece': piece_to_dict(piece),
-        'combat': combat_result,
-        'game_state': get_game_state()
-    }
+        # Check for combat
+        combat_result = current_game.board.check_combat(row, col, piece)
 
-    emit('ai_moved', response, broadcast=True)
+        # Check for victory
+        current_game.check_victory()
 
-    # Continue if next player is also AI
-    if not current_game.game_over:
-        current_game.switch_player()
-        current_game.turn_count += 1
+        # Build response
+        response = {
+            'row': row,
+            'col': col,
+            'piece': piece_to_dict(piece),
+            'combat': combat_result,
+            'game_state': get_game_state()
+        }
 
-        if isinstance(current_game.current_player, (AIPlayer, RandomPlayer)):
-            socketio.sleep(0.5)
-            process_ai_turn()
+        emit('ai_moved', response, broadcast=True)
+
+        # Continue if next player is also AI
+        if not current_game.game_over:
+            current_game.switch_player()
+            current_game.turn_count += 1
+
+            # Check if next player is also AI
+            if hasattr(current_game.current_player, 'choose_move'):
+                socketio.sleep(0.5)
+                process_ai_turn()
 
 def get_game_state():
     """Convert game state to dictionary for JSON"""
@@ -238,4 +242,4 @@ if __name__ == '__main__':
     print("Starting server on http://localhost:5000")
     print("Press Ctrl+C to stop")
     print("=" * 60)
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
