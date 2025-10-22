@@ -75,6 +75,8 @@ function handleGameStarted(data) {
 
     updateGameState(data);
     addStatusMessage('Game started!');
+    addStatusMessage('Click any cell on the board to place a piece');
+    addStatusMessage('Red player starts');
 }
 
 function updateGameState(data) {
