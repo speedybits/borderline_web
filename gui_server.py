@@ -104,37 +104,47 @@ def handle_place_piece(data):
     # Use the first available piece from the player
     piece = current_game.current_player.pieces[0]
 
-    # Validate placement
-    if not current_game.board.is_valid_placement(row, col):
+    # Get existing player pieces on the board
+    player_pieces = current_game.board.get_player_pieces(current_game.current_player.color)
+
+    # Validate placement using proper game rules
+    if not current_game.board.can_place_piece(piece, row, col, player_pieces):
         emit('placement_error', {
-            'message': 'Invalid placement location',
+            'message': 'Invalid placement - must connect to existing pieces or home row',
             'row': row,
             'col': col
         })
         return
 
-    # Place piece
+    # Check for combat BEFORE placing (need to check adjacency first)
+    all_pieces = current_game.board.get_player_pieces('R') + current_game.board.get_player_pieces('B')
+    adjacent_pips = current_game.board.check_pip_adjacency(piece, row, col, all_pieces)
+
+    # Place piece on board
     current_game.board.grid[row][col] = piece
     current_game.current_player.pieces.remove(piece)
 
-    # Check for combat
-    combat_result = current_game.board.check_combat(row, col, piece)
+    # Resolve combat (if any)
+    combat_result = current_game.board.resolve_combat(piece, row, col, adjacent_pips)
 
     # Check for victory
-    current_game.check_victory()
+    victory = current_game.board.check_victory(current_game.current_player.color)
+    if victory:
+        current_game.winner = current_game.current_player
+        current_game.game_over = True
 
     # Build response
     response = {
         'row': row,
         'col': col,
         'piece': piece_to_dict(piece),
-        'combat': combat_result,
+        'combat': combat_to_dict(combat_result),
         'game_state': get_game_state()
     }
 
     emit('piece_placed', response, broadcast=True)
 
-    # If game not over and next player is AI, make AI move
+    # If game not over, switch player and check if AI should move
     if not current_game.game_over:
         current_game.switch_player()
         current_game.turn_count += 1
@@ -170,35 +180,45 @@ def process_ai_turn():
             current_game.turn_count += 1
             return
 
-        row, col, piece = result
+        piece, row, col, rotation, piece_idx = result
 
-        # Place piece
+        # Check for combat BEFORE placing
+        all_pieces = current_game.board.get_player_pieces('R') + current_game.board.get_player_pieces('B')
+        adjacent_pips = current_game.board.check_pip_adjacency(piece, row, col, all_pieces)
+
+        # Remove piece from player's hand using the index (AI already selected the specific piece)
+        current_game.current_player.pieces.pop(piece_idx)
+
+        # Place piece on board
         current_game.board.grid[row][col] = piece
-        current_game.current_player.pieces.remove(piece)
 
-        # Check for combat
-        combat_result = current_game.board.check_combat(row, col, piece)
+        # Resolve combat (if any)
+        combat_result = current_game.board.resolve_combat(piece, row, col, adjacent_pips)
 
         # Check for victory
-        current_game.check_victory()
+        victory = current_game.board.check_victory(current_game.current_player.color)
+        if victory:
+            current_game.winner = current_game.current_player
+            current_game.game_over = True
 
         # Build response
         response = {
             'row': row,
             'col': col,
             'piece': piece_to_dict(piece),
-            'combat': combat_result,
+            'combat': combat_to_dict(combat_result),
             'game_state': get_game_state()
         }
 
         emit('ai_moved', response, broadcast=True)
 
-        # Continue if next player is also AI
+        # Switch player if game not over
         if not current_game.game_over:
             current_game.switch_player()
             current_game.turn_count += 1
 
-            # Check if next player is also AI
+            # If next player is also AI, continue with their turn
+            # Note: Using iteration instead of recursion to avoid stack overflow
             if hasattr(current_game.current_player, 'choose_move'):
                 socketio.sleep(0.5)
                 process_ai_turn()
@@ -241,7 +261,36 @@ def piece_to_dict(piece):
     return {
         'color': piece.player_color,
         'pips': piece.pips,
-        'power': piece.calculate_power()
+        'power': piece.get_power_level()
+    }
+
+def combat_to_dict(combat):
+    """Convert combat result to JSON-serializable dictionary"""
+    if not combat:
+        return None
+
+    # Convert defenders list (which contains GamePiece objects) to serializable format
+    defenders_serializable = []
+    for defender in combat['defenders']:
+        defenders_serializable.append({
+            'row': defender['row'],
+            'col': defender['col'],
+            'power': defender['power']
+        })
+
+    return {
+        'combat_occurred': True,
+        'attacker_pos': combat['attacker_pos'],
+        'attacker_power': combat['attacker_power'],
+        'attacker_roll': combat['attacker_roll'],
+        'attacker_total': combat['attacker_total'],
+        'attacker_color': combat['attacker_color'],
+        'defenders': defenders_serializable,
+        'defender_power': combat['defender_power'],
+        'defender_roll': combat['defender_roll'],
+        'defender_total': combat['defender_total'],
+        'defender_color': combat['defender_color'],
+        'winner': combat['winner']
     }
 
 if __name__ == '__main__':
