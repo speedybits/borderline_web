@@ -8,8 +8,8 @@ class BoardRenderer {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         this.cellSize = 80;
-        this.boardWidth = 8;
-        this.boardHeight = 6;
+        this.boardWidth = 6;
+        this.boardHeight = 8;
         this.pipSize = 24;
         this.pipGap = 2;
 

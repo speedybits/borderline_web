@@ -52,19 +52,14 @@ function handleCanvasClick(e) {
 
     console.log(`Clicked cell: (${cell.row}, ${cell.col})`);
 
-    // For now, create a default piece
-    // TODO: Allow piece selection from sidebar
-    const pieceConfig = [
-        [gameState.current_player, gameState.current_player, gameState.current_player],
-        [gameState.current_player, gameState.current_player, gameState.current_player],
-        [gameState.current_player, gameState.current_player, gameState.current_player]
-    ];
+    // Get selected piece index (defaults to 0 if none selected)
+    const pieceIndex = window.getSelectedPieceIndex ? window.getSelectedPieceIndex() : 0;
 
-    // Send placement to server
+    // Send placement to server with selected piece index
     socket.emit('place_piece', {
         row: cell.row,
         col: cell.col,
-        piece: pieceConfig
+        piece_index: pieceIndex
     });
 }
 
@@ -91,6 +86,11 @@ function updateGameState(data) {
     updateTurnIndicator(data.current_player);
     updatePieceCounts(data.red_pieces_remaining, data.blue_pieces_remaining);
     updateTurnNumber(data.turn_count);
+
+    // Render piece pools (if function exists)
+    if (window.renderPiecePools) {
+        window.renderPiecePools(data);
+    }
 
     // Check for victory
     if (data.game_over && data.winner) {

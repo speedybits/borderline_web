@@ -393,6 +393,65 @@ body {
     50% { opacity: 1; }
 }
 
+/* Hand Piece Styling */
+.hand-piece {
+    width: 100%;
+    border: 2px solid;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.hand-piece:hover {
+    transform: scale(1.05);
+}
+
+.hand-piece.selected {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px currentColor;
+}
+
+.hand-piece.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.piece-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.piece-pip {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.piece-pip.pip-empty {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.piece-pip.pip-filled {
+    background: currentColor;
+}
+
+.piece-pip.pip-red {
+    background: var(--red-neon);
+    box-shadow: 0 0 8px var(--red-neon);
+}
+
+.piece-pip.pip-blue {
+    background: var(--blue-neon);
+    box-shadow: 0 0 8px var(--blue-neon);
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 8px;

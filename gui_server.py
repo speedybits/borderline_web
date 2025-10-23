@@ -86,13 +86,11 @@ def handle_place_piece(data):
 
     row = data.get('row')
     col = data.get('col')
-    piece_config = data.get('piece')  # 3x3 pip configuration
+    piece_index = data.get('piece_index', 0)  # Default to first piece if not specified
 
-    print(f"Placement request: ({row}, {col})")
+    print(f"Placement request: ({row}, {col}), piece_index={piece_index}")
 
-    # For Phase 1, use the AI player's choose_move to get a valid piece
-    # or create a simple full piece
-    # Get any piece from the player's available pieces
+    # Check if player has pieces
     if not current_game.current_player.has_pieces():
         emit('placement_error', {
             'message': 'No pieces remaining',
@@ -101,8 +99,17 @@ def handle_place_piece(data):
         })
         return
 
-    # Use the first available piece from the player
-    piece = current_game.current_player.pieces[0]
+    # Validate piece index
+    if piece_index < 0 or piece_index >= len(current_game.current_player.pieces):
+        emit('placement_error', {
+            'message': f'Invalid piece index: {piece_index}',
+            'row': row,
+            'col': col
+        })
+        return
+
+    # Get the selected piece
+    piece = current_game.current_player.pieces[piece_index]
 
     # Get existing player pieces on the board
     player_pieces = current_game.board.get_player_pieces(current_game.current_player.color)
@@ -120,9 +127,9 @@ def handle_place_piece(data):
     all_pieces = current_game.board.get_player_pieces('R') + current_game.board.get_player_pieces('B')
     adjacent_pips = current_game.board.check_pip_adjacency(piece, row, col, all_pieces)
 
-    # Place piece on board
+    # Remove piece from player's hand and place on board
+    current_game.current_player.pieces.pop(piece_index)
     current_game.board.grid[row][col] = piece
-    current_game.current_player.pieces.remove(piece)
 
     # Resolve combat (if any)
     combat_result = current_game.board.resolve_combat(piece, row, col, adjacent_pips)
@@ -235,7 +242,9 @@ def get_game_state():
         'game_over': current_game.game_over,
         'winner': current_game.winner.color if current_game.winner else None,
         'red_pieces_remaining': len(current_game.red_player.pieces),
-        'blue_pieces_remaining': len(current_game.blue_player.pieces)
+        'blue_pieces_remaining': len(current_game.blue_player.pieces),
+        'red_pieces': [piece_to_dict(p) for p in current_game.red_player.pieces],
+        'blue_pieces': [piece_to_dict(p) for p in current_game.blue_player.pieces]
     }
 
 def board_to_dict(board):

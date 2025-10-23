@@ -164,7 +164,13 @@ body {
     background: radial-gradient(ellipse at center, rgba(26, 26, 46, 0.2) 0%, rgba(10, 10, 10, 0.9) 100%);
     box-shadow:
         0 0 30px rgba(0, 255, 136, 0.2),
-        inset 0 0 50px rgba(0, 0, 0, 0.5);
+        inset 0 0 50px rgba(0, 0, 0, 0.5),
+        /* Red home row indicator (bottom) */
+        inset 0 -3px 0 0 var(--red-neon),
+        inset 0 -3px 10px 0 rgba(255, 0, 85, 0.5),
+        /* Blue home row indicator (top) */
+        inset 0 3px 0 0 var(--blue-neon),
+        inset 0 3px 10px 0 rgba(0, 212, 255, 0.5);
 }
 
 /* Dice Zone */
