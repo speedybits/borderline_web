@@ -183,6 +183,63 @@ class BoardRenderer {
             }, 2000);
         }, 1000);
     }
+
+    animatePiecePlacement(piece, col, row, callback) {
+        const x = col * this.cellSize;
+        const y = row * this.cellSize;
+        const color = piece.color === 'R' ? this.colors.redNeon : this.colors.blueNeon;
+
+        let scale = 0;
+        let opacity = 0;
+        const duration = 300; // ms
+        const startTime = Date.now();
+
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Easing function (ease-out cubic)
+            const eased = 1 - Math.pow(1 - progress, 3);
+
+            scale = eased;
+            opacity = eased;
+
+            // Redraw board
+            this.drawBoard(this.board);
+
+            // Draw animating piece
+            this.ctx.save();
+            this.ctx.globalAlpha = opacity;
+            this.ctx.translate(x + this.cellSize / 2, y + this.cellSize / 2);
+            this.ctx.scale(scale, scale);
+            this.ctx.translate(-(x + this.cellSize / 2), -(y + this.cellSize / 2));
+
+            // Draw pips
+            for (let pipRow = 0; pipRow < 3; pipRow++) {
+                for (let pipCol = 0; pipCol < 3; pipCol++) {
+                    const pipValue = piece.pips[pipRow][pipCol];
+                    if (pipValue === piece.color) {
+                        const pipX = x + pipCol * (this.pipSize + this.pipGap) + 10;
+                        const pipY = y + pipRow * (this.pipSize + this.pipGap) + 10;
+                        this.drawPip(pipX, pipY, color);
+                    }
+                }
+            }
+
+            // Draw power level
+            this.drawPowerLevel(x + 4, y + 4, piece.power, color);
+
+            this.ctx.restore();
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else if (callback) {
+                callback();
+            }
+        };
+
+        animate();
+    }
 }
 
 // Global renderer instance

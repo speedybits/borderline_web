@@ -101,29 +101,37 @@ function updateGameState(data) {
 function handlePiecePlaced(data) {
     console.log('Handling piece placement:', data);
 
-    // Update game state
-    if (data.game_state) {
-        updateGameState(data.game_state);
-    }
+    // Animate piece placement
+    if (renderer && data.piece) {
+        renderer.animatePiecePlacement(data.piece, data.col, data.row, () => {
+            // After animation, update game state
+            if (data.game_state) {
+                updateGameState(data.game_state);
+            }
 
-    // Handle combat
-    if (data.combat && data.combat.combat_occurred) {
-        const combat = data.combat;
-        addStatusMessage(
-            `Combat at (${data.row},${data.col}): ` +
-            `${combat.attacker_color} ${combat.attacker_roll} vs ` +
-            `${combat.defender_color} ${combat.defender_roll} - ` +
-            `${combat.winner} wins!`
-        );
+            // Handle combat
+            if (data.combat && data.combat.combat_occurred) {
+                const combat = data.combat;
+                addStatusMessage(
+                    `Combat at (${data.row},${data.col}): ` +
+                    `${combat.attacker_color} ${combat.attacker_roll} vs ` +
+                    `${combat.defender_color} ${combat.defender_roll} - ` +
+                    `${combat.winner} wins!`
+                );
 
-        // Animate dice roll
-        if (renderer) {
-            renderer.animateDiceRoll(combat.attacker_roll, combat.defender_roll);
-        }
+                // Animate dice roll
+                renderer.animateDiceRoll(combat.attacker_roll, combat.defender_roll);
+            } else {
+                addStatusMessage(
+                    `${data.piece.color} placed piece at (${data.row},${data.col})`
+                );
+            }
+        });
     } else {
-        addStatusMessage(
-            `${data.piece.color} placed piece at (${data.row},${data.col})`
-        );
+        // Fallback if no renderer
+        if (data.game_state) {
+            updateGameState(data.game_state);
+        }
     }
 
     selectedPiece = null;
