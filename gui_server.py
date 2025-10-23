@@ -42,17 +42,46 @@ def handle_start_game(data):
     print(f"Starting new game: {mode}")
     print(f"  Red: {red_type}, Blue: {blue_type}")
 
-    # Create players based on type
-    red_strategy = data.get('red_strategy', 'aggressive')
-    blue_strategy = data.get('blue_strategy', 'defensive')
-    blue_random = (blue_type == 'random')
+    # Create game board
+    current_game = borderline_gpt.BorderlineGPT.__new__(borderline_gpt.BorderlineGPT)
+    current_game.board = borderline_gpt.GameBoard()
+    current_game.turn_count = 0
+    current_game.game_over = False
+    current_game.winner = None
 
-    # Initialize game
-    current_game = BorderlineGPT(
-        red_strategy=red_strategy,
-        blue_strategy=blue_strategy,
-        blue_random=blue_random
-    )
+    # Create players based on type
+    if red_type == 'human':
+        current_game.red_player = borderline_gpt.Player('R', 'Red Player')
+    elif red_type == 'random':
+        current_game.red_player = borderline_gpt.RandomPlayer('R', 'Red Random')
+    else:  # ai
+        red_strategy = data.get('red_strategy', 'aggressive')
+        if red_strategy == 'aggressive':
+            current_game.red_player = borderline_gpt.AggressiveConnectorAI('R', 'Red Aggressive')
+        else:
+            current_game.red_player = borderline_gpt.DefensiveTerritoryAI('R', 'Red Defensive')
+
+    if blue_type == 'human':
+        current_game.blue_player = borderline_gpt.Player('B', 'Blue Player')
+    elif blue_type == 'random':
+        current_game.blue_player = borderline_gpt.RandomPlayer('B', 'Blue Random')
+    else:  # ai
+        blue_strategy = data.get('blue_strategy', 'defensive')
+        if blue_strategy == 'aggressive':
+            current_game.blue_player = borderline_gpt.AggressiveConnectorAI('B', 'Blue Aggressive')
+        else:
+            current_game.blue_player = borderline_gpt.DefensiveTerritoryAI('B', 'Blue Defensive')
+
+    # Set current player to Red (Red starts)
+    current_game.current_player = current_game.red_player
+
+    # Add switch_player method
+    def switch_player():
+        if current_game.current_player == current_game.red_player:
+            current_game.current_player = current_game.blue_player
+        else:
+            current_game.current_player = current_game.red_player
+    current_game.switch_player = switch_player
 
     # Get initial game state
     state = get_game_state()

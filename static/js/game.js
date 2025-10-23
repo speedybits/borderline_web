@@ -101,6 +101,11 @@ function updateGameState(data) {
 function handlePiecePlaced(data) {
     console.log('Handling piece placement:', data);
 
+    // Clear piece selection
+    if (window.clearPieceSelection) {
+        window.clearPieceSelection();
+    }
+
     // Animate piece placement
     if (renderer && data.piece) {
         renderer.animatePiecePlacement(data.piece, data.col, data.row, () => {
