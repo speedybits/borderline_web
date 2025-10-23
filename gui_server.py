@@ -169,7 +169,12 @@ def handle_place_piece(data):
         current_game.winner = current_game.current_player
         current_game.game_over = True
 
-    # Build response
+    # If game not over, switch player BEFORE building response
+    if not current_game.game_over:
+        current_game.switch_player()
+        current_game.turn_count += 1
+
+    # Build response (with updated current_player)
     response = {
         'row': row,
         'col': col,
@@ -180,15 +185,10 @@ def handle_place_piece(data):
 
     emit('piece_placed', response, broadcast=True)
 
-    # If game not over, switch player and check if AI should move
-    if not current_game.game_over:
-        current_game.switch_player()
-        current_game.turn_count += 1
-
-        # Check if current player is AI (has choose_move method)
-        if hasattr(current_game.current_player, 'choose_move'):
-            socketio.sleep(0.5)  # Brief pause for visualization
-            process_ai_turn()
+    # Check if current player is AI (has choose_move method)
+    if not current_game.game_over and hasattr(current_game.current_player, 'choose_move'):
+        socketio.sleep(0.5)  # Brief pause for visualization
+        process_ai_turn()
 
 def process_ai_turn():
     """Process AI player's turn"""

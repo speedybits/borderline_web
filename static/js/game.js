@@ -106,12 +106,25 @@ function handlePiecePlaced(data) {
         window.clearPieceSelection();
     }
 
+    // Update game state FIRST (before animation) so piece pools reflect new current player
+    if (data.game_state) {
+        gameState = data.game_state;
+        updateTurnIndicator(data.game_state.current_player);
+        updatePieceCounts(data.game_state.red_pieces_remaining, data.game_state.blue_pieces_remaining);
+        updateTurnNumber(data.game_state.turn_count);
+
+        // Render piece pools with new current player
+        if (window.renderPiecePools) {
+            window.renderPiecePools(data.game_state);
+        }
+    }
+
     // Animate piece placement
     if (renderer && data.piece) {
         renderer.animatePiecePlacement(data.piece, data.col, data.row, () => {
-            // After animation, update game state
-            if (data.game_state) {
-                updateGameState(data.game_state);
+            // After animation, redraw board with new state
+            if (renderer && gameState && gameState.board) {
+                renderer.drawBoard(gameState.board);
             }
 
             // Handle combat
@@ -130,6 +143,11 @@ function handlePiecePlaced(data) {
                 addStatusMessage(
                     `${data.piece.color} placed piece at (${data.row},${data.col})`
                 );
+            }
+
+            // Check for victory
+            if (gameState.game_over && gameState.winner) {
+                showVictoryScreen(gameState.winner);
             }
         });
     } else {
