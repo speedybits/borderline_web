@@ -2029,6 +2029,273 @@ class BorderlineGPT:
         """Get the complete move history in JSON format"""
         return self.move_history.copy()
 
+    # ==================== PIECE MANAGEMENT API ====================
+    # Methods for dynamic piece manipulation (gifting, custom pieces, etc.)
+    # ==============================================================
+
+    def create_piece_from_pattern(self, player_color, pip_pattern):
+        """
+        Create a piece from a pip pattern
+
+        Args:
+            player_color: 'R' or 'B'
+            pip_pattern: 3x3 array of pips (e.g., [['R','_','_'], ['_','R','_'], ['_','_','R']])
+
+        Returns:
+            GamePiece object
+        """
+        # Validate pattern
+        if len(pip_pattern) != 3 or any(len(row) != 3 for row in pip_pattern):
+            raise ValueError("Pip pattern must be 3x3")
+
+        # Create piece
+        piece = GamePiece(player_color, [row[:] for row in pip_pattern])
+        return piece
+
+    def create_piece_from_json(self, piece_json):
+        """
+        Create a piece from JSON representation
+
+        Args:
+            piece_json: dict with 'player_color' and 'pips' keys
+
+        Returns:
+            GamePiece object
+
+        Example:
+            piece_json = {
+                'player_color': 'R',
+                'pips': [['R','_','_'], ['_','R','_'], ['_','_','R']]
+            }
+        """
+        return self.json_to_piece(piece_json)
+
+    def add_piece_to_hand(self, player_color, piece_or_json):
+        """
+        Add a piece to a player's hand
+
+        Args:
+            player_color: 'R' or 'B'
+            piece_or_json: Either a GamePiece object or JSON dict
+
+        Returns:
+            dict with:
+                - success: bool
+                - piece_index: int (index in hand where piece was added)
+                - message: str
+
+        Example use cases:
+            - Gift a random piece during gameplay
+            - Add custom pieces for special game modes
+            - Restore pieces for undo functionality
+        """
+        player = self.red_player if player_color == 'R' else self.blue_player
+
+        # Convert JSON to piece if needed
+        if isinstance(piece_or_json, dict):
+            piece = self.create_piece_from_json(piece_or_json)
+        else:
+            piece = piece_or_json
+
+        # Add to player's hand
+        player.pieces.append(piece)
+        piece_index = len(player.pieces) - 1
+
+        return {
+            'success': True,
+            'piece_index': piece_index,
+            'piece': self.piece_to_json(piece),
+            'message': f'Piece added to {player_color} player hand at index {piece_index}'
+        }
+
+    def remove_piece_from_hand(self, player_color, piece_index):
+        """
+        Remove a piece from a player's hand (without placing it)
+
+        Args:
+            player_color: 'R' or 'B'
+            piece_index: int (index of piece to remove)
+
+        Returns:
+            dict with:
+                - success: bool
+                - piece: dict (JSON representation of removed piece)
+                - message: str
+
+        Example use cases:
+            - Penalty mechanics (lose a piece)
+            - Trade pieces between players
+            - Special abilities that consume pieces
+        """
+        player = self.red_player if player_color == 'R' else self.blue_player
+
+        if piece_index < 0 or piece_index >= len(player.pieces):
+            return {
+                'success': False,
+                'piece': None,
+                'message': f'Invalid piece_index: {piece_index}'
+            }
+
+        removed_piece = player.pieces.pop(piece_index)
+
+        return {
+            'success': True,
+            'piece': self.piece_to_json(removed_piece),
+            'message': f'Piece removed from {player_color} player hand'
+        }
+
+    def gift_random_piece(self, player_color):
+        """
+        Gift a random piece to a player
+
+        Args:
+            player_color: 'R' or 'B'
+
+        Returns:
+            dict with:
+                - success: bool
+                - piece: dict (JSON representation of gifted piece)
+                - piece_index: int
+                - message: str
+        """
+        # Create a new random piece from the standard set
+        piece_set = GamePiece.create_fixed_piece_set(player_color)
+        random_piece = random.choice(piece_set)
+
+        result = self.add_piece_to_hand(player_color, random_piece)
+        result['message'] = f'Random piece gifted to {player_color} player'
+
+        return result
+
+    def create_custom_piece(self, player_color, pip_positions):
+        """
+        Create a custom piece from pip positions
+
+        Args:
+            player_color: 'R' or 'B'
+            pip_positions: List of [row, col] positions where pips should be
+                          Example: [[0,0], [1,1], [2,2]] creates diagonal
+
+        Returns:
+            dict with:
+                - success: bool
+                - piece: dict (JSON representation)
+                - message: str
+
+        Example:
+            # Create a custom X-shape
+            result = game.create_custom_piece('R', [
+                [0,0], [0,2], [1,1], [2,0], [2,2]
+            ])
+        """
+        # Validate positions
+        for pos in pip_positions:
+            if len(pos) != 2 or not (0 <= pos[0] < 3 and 0 <= pos[1] < 3):
+                return {
+                    'success': False,
+                    'piece': None,
+                    'message': f'Invalid pip position: {pos}'
+                }
+
+        # Create pattern
+        pattern = [['_' for _ in range(3)] for _ in range(3)]
+        for row, col in pip_positions:
+            pattern[row][col] = player_color
+
+        # Validate center pip exists
+        if pattern[1][1] == '_':
+            return {
+                'success': False,
+                'piece': None,
+                'message': 'Center pip [1,1] must be filled'
+            }
+
+        piece = self.create_piece_from_pattern(player_color, pattern)
+
+        return {
+            'success': True,
+            'piece': self.piece_to_json(piece),
+            'message': f'Custom piece created with {len(pip_positions)} pips'
+        }
+
+    def gift_custom_piece_to_hand(self, player_color, pip_positions):
+        """
+        Create and add a custom piece to player's hand
+
+        Combines create_custom_piece + add_piece_to_hand
+
+        Args:
+            player_color: 'R' or 'B'
+            pip_positions: List of [row, col] positions
+
+        Returns:
+            dict with:
+                - success: bool
+                - piece: dict
+                - piece_index: int
+                - message: str
+        """
+        # Create custom piece
+        create_result = self.create_custom_piece(player_color, pip_positions)
+
+        if not create_result['success']:
+            return create_result
+
+        # Convert back from JSON to piece
+        piece = self.create_piece_from_json(create_result['piece'])
+
+        # Add to hand
+        add_result = self.add_piece_to_hand(player_color, piece)
+        add_result['message'] = f'Custom piece added to {player_color} player hand'
+
+        return add_result
+
+    def swap_pieces_between_players(self, red_piece_index, blue_piece_index):
+        """
+        Swap pieces between red and blue players
+
+        Args:
+            red_piece_index: Index in red player's hand
+            blue_piece_index: Index in blue player's hand
+
+        Returns:
+            dict with:
+                - success: bool
+                - red_piece: dict (piece red gave)
+                - blue_piece: dict (piece blue gave)
+                - message: str
+        """
+        # Remove from both hands
+        red_result = self.remove_piece_from_hand('R', red_piece_index)
+        if not red_result['success']:
+            return red_result
+
+        blue_result = self.remove_piece_from_hand('B', blue_piece_index)
+        if not blue_result['success']:
+            # Restore red piece
+            self.add_piece_to_hand('R', self.create_piece_from_json(red_result['piece']))
+            return blue_result
+
+        # Add to opposite hands (swap colors)
+        red_piece = self.create_piece_from_json(red_result['piece'])
+        blue_piece = self.create_piece_from_json(blue_result['piece'])
+
+        # Change colors
+        red_piece.convert_to_color('B')
+        blue_piece.convert_to_color('R')
+
+        self.add_piece_to_hand('B', red_piece)
+        self.add_piece_to_hand('R', blue_piece)
+
+        return {
+            'success': True,
+            'red_gave': red_result['piece'],
+            'blue_gave': blue_result['piece'],
+            'message': 'Pieces swapped between players'
+        }
+
+    # ==================== END PIECE MANAGEMENT ====================
+
     def display_game_state(self):
         """Display the complete game state including board and remaining pieces"""
         print(self.board.display(highlight_positions=self.last_placed_pos))
