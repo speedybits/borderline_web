@@ -18,6 +18,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Global game state
 current_game = None
 game_sessions = {}
+pending_placement = None  # Stores {piece, row, col, rotation, piece_index}
 
 @app.route('/')
 def index():
@@ -32,7 +33,7 @@ def handle_connect():
 
 @socketio.on('start_game')
 def handle_start_game(data):
-    """Initialize a new game"""
+    """Initialize a new game using proper BorderlineGPT constructor"""
     global current_game
 
     mode = data.get('mode', 'human_vs_human')
@@ -42,16 +43,13 @@ def handle_start_game(data):
     print(f"Starting new game: {mode}")
     print(f"  Red: {red_type}, Blue: {blue_type}")
 
-    # Create game board
-    current_game = borderline_gpt.BorderlineGPT.__new__(borderline_gpt.BorderlineGPT)
-    current_game.board = borderline_gpt.GameBoard()
-    current_game.turn_count = 0
-    current_game.game_over = False
-    current_game.winner = None
+    # For GUI, we need to manually construct with GUI-specific players
+    # Create game with default AI players first
+    current_game = BorderlineGPT()
 
-    # Create players based on type
+    # Replace players based on type
     if red_type == 'human':
-        current_game.red_player = borderline_gpt.Player('R', 'Red Player')
+        current_game.red_player = borderline_gpt.GUIHumanPlayer('R', 'Red Player')
     elif red_type == 'random':
         current_game.red_player = borderline_gpt.RandomPlayer('R', 'Red Random')
     else:  # ai
@@ -62,7 +60,7 @@ def handle_start_game(data):
             current_game.red_player = borderline_gpt.DefensiveTerritoryAI('R', 'Red Defensive')
 
     if blue_type == 'human':
-        current_game.blue_player = borderline_gpt.Player('B', 'Blue Player')
+        current_game.blue_player = borderline_gpt.GUIHumanPlayer('B', 'Blue Player')
     elif blue_type == 'random':
         current_game.blue_player = borderline_gpt.RandomPlayer('B', 'Blue Random')
     else:  # ai
@@ -72,18 +70,10 @@ def handle_start_game(data):
         else:
             current_game.blue_player = borderline_gpt.DefensiveTerritoryAI('B', 'Blue Defensive')
 
-    # Set current player to Red (Red starts)
+    # Reset current player to Red (Red always starts)
     current_game.current_player = current_game.red_player
 
-    # Add switch_player method
-    def switch_player():
-        if current_game.current_player == current_game.red_player:
-            current_game.current_player = current_game.blue_player
-        else:
-            current_game.current_player = current_game.red_player
-    current_game.switch_player = switch_player
-
-    # Get initial game state
+    # Get initial game state using API
     state = get_game_state()
     emit('game_started', state, broadcast=True)
 
@@ -102,8 +92,8 @@ def handle_get_state():
 
 @socketio.on('place_piece')
 def handle_place_piece(data):
-    """Handle piece placement from client"""
-    global current_game
+    """Handle initial piece placement from client (enters rotation mode) - NO VALIDATION YET"""
+    global current_game, pending_placement
 
     if not current_game:
         emit('error', {'message': 'No active game'})
@@ -140,58 +130,129 @@ def handle_place_piece(data):
     # Get the selected piece
     piece = current_game.current_player.pieces[piece_index]
 
-    # Get existing player pieces on the board
-    player_pieces = current_game.board.get_player_pieces(current_game.current_player.color)
+    # Store pending placement (don't validate or place on board yet - allow experimentation!)
+    pending_placement = {
+        'piece': piece,
+        'row': row,
+        'col': col,
+        'rotation': 0,
+        'piece_index': piece_index
+    }
 
-    # Validate placement using proper game rules
-    if not current_game.board.can_place_piece(piece, row, col, player_pieces):
-        emit('placement_error', {
-            'message': 'Invalid placement - must connect to existing pieces or home row',
-            'row': row,
-            'col': col
-        })
-        return
-
-    # Check for combat BEFORE placing (need to check adjacency first)
-    all_pieces = current_game.board.get_player_pieces('R') + current_game.board.get_player_pieces('B')
-    adjacent_pips = current_game.board.check_pip_adjacency(piece, row, col, all_pieces)
-
-    # Remove piece from player's hand and place on board
-    current_game.current_player.pieces.pop(piece_index)
-    current_game.board.grid[row][col] = piece
-
-    # Resolve combat (if any)
-    combat_result = current_game.board.resolve_combat(piece, row, col, adjacent_pips)
-
-    # Check for victory
-    victory = current_game.board.check_victory(current_game.current_player.color)
-    if victory:
-        current_game.winner = current_game.current_player
-        current_game.game_over = True
-
-    # If game not over, switch player BEFORE building response
-    if not current_game.game_over:
-        current_game.switch_player()
-        current_game.turn_count += 1
-
-    # Build response (with updated current_player)
+    # Send piece to client for rotation mode
     response = {
         'row': row,
         'col': col,
         'piece': piece_to_dict(piece),
+        'rotation': 0
+    }
+
+    emit('piece_pending_rotation', response, broadcast=True)
+
+@socketio.on('rotate_piece')
+def handle_rotate_piece(data):
+    """Handle piece rotation during placement"""
+    global pending_placement
+
+    if not pending_placement:
+        emit('error', {'message': 'No piece to rotate'})
+        return
+
+    # Rotate the piece by 90 degrees
+    pending_placement['rotation'] = (pending_placement['rotation'] + 90) % 360
+    rotated_piece = pending_placement['piece'].rotate(pending_placement['rotation'])
+
+    response = {
+        'row': pending_placement['row'],
+        'col': pending_placement['col'],
+        'piece': piece_to_dict(rotated_piece),
+        'rotation': pending_placement['rotation']
+    }
+
+    emit('piece_rotated', response, broadcast=True)
+
+@socketio.on('confirm_placement')
+def handle_confirm_placement(data):
+    """Confirm and finalize piece placement - USE GAME ENGINE API"""
+    global current_game, pending_placement
+
+    if not pending_placement:
+        emit('error', {'message': 'No pending placement'})
+        return
+
+    # Get placement details
+    row = pending_placement['row']
+    col = pending_placement['col']
+    rotation = pending_placement['rotation']
+    piece_index = pending_placement['piece_index']
+
+    # Clear pending placement
+    pending_placement = None
+
+    # Convert rotation from degrees (0, 90, 180, 270) to count (0, 1, 2, 3)
+    rotation_count = rotation // 90
+
+    # Build move in API format
+    move = {
+        'player': current_game.current_player.color,
+        'piece_index': piece_index,
+        'position': [row, col],
+        'rotation': rotation_count
+    }
+
+    # Call game engine API - it does EVERYTHING (validation, placement, combat, victory)
+    result = current_game.execute_move(move)
+
+    # Just broadcast the result - NO game logic here!
+    if not result['valid']:
+        emit('placement_invalid', {
+            'message': result['reason'],
+            'row': row,
+            'col': col
+        }, broadcast=True)
+        return
+
+    # Valid move - build response from events
+    combat_result = None
+    removed_pieces = []
+
+    for event in result['events']:
+        if event['type'] == 'combat':
+            combat_result = event['combat_data']
+        elif event['type'] == 'piece_removed':
+            removed_pieces.append({
+                'row': event['row'],
+                'col': event['col'],
+                'piece': event['piece'],  # Already JSON from API
+                'reason': event['reason']
+            })
+
+    # Get placed piece from events
+    placed_piece = None
+    for event in result['events']:
+        if event['type'] == 'piece_placed':
+            placed_piece = event['piece']
+            break
+
+    # Build response (game state already updated by engine)
+    response = {
+        'row': row,
+        'col': col,
+        'piece': placed_piece,
         'combat': combat_to_dict(combat_result),
-        'game_state': get_game_state()
+        'removed_pieces': removed_pieces,
+        'game_state': api_state_to_gui_state(result['game_state'])
     }
 
     emit('piece_placed', response, broadcast=True)
 
     # Check if current player is AI (has choose_move method)
-    if not current_game.game_over and hasattr(current_game.current_player, 'choose_move'):
+    if not result['game_over'] and hasattr(current_game.current_player, 'choose_move'):
         socketio.sleep(0.5)  # Brief pause for visualization
         process_ai_turn()
 
 def process_ai_turn():
-    """Process AI player's turn"""
+    """Process AI player's turn using API"""
     global current_game
 
     if not current_game or current_game.game_over:
@@ -205,9 +266,9 @@ def process_ai_turn():
         }, broadcast=True)
 
         # Get AI move
-        result = current_game.current_player.choose_move(current_game.board)
+        ai_result = current_game.current_player.choose_move(current_game.board)
 
-        if result[0] is None:
+        if ai_result[0] is None:
             # AI has no valid moves
             emit('ai_no_moves', {
                 'player': current_game.current_player.color
@@ -216,86 +277,106 @@ def process_ai_turn():
             current_game.turn_count += 1
             return
 
-        piece, row, col, rotation, piece_idx = result
+        piece, row, col, rotation_degrees, piece_idx = ai_result
 
-        # Check for combat BEFORE placing
-        all_pieces = current_game.board.get_player_pieces('R') + current_game.board.get_player_pieces('B')
-        adjacent_pips = current_game.board.check_pip_adjacency(piece, row, col, all_pieces)
+        # Convert rotation from degrees to count for API
+        rotation_count = rotation_degrees // 90
 
-        # Remove piece from player's hand using the index (AI already selected the specific piece)
-        current_game.current_player.pieces.pop(piece_idx)
+        # Build move in API format
+        move = {
+            'player': current_game.current_player.color,
+            'piece_index': piece_idx,
+            'position': [row, col],
+            'rotation': rotation_count
+        }
 
-        # Place piece on board
-        current_game.board.grid[row][col] = piece
+        # Execute move through API
+        result = current_game.execute_move(move)
 
-        # Resolve combat (if any)
-        combat_result = current_game.board.resolve_combat(piece, row, col, adjacent_pips)
+        if not result['valid']:
+            # This shouldn't happen with a properly functioning AI
+            print(f"ERROR: AI made invalid move: {result['reason']}")
+            emit('error', {'message': f"AI error: {result['reason']}"}, broadcast=True)
+            return
 
-        # Check for victory
-        victory = current_game.board.check_victory(current_game.current_player.color)
-        if victory:
-            current_game.winner = current_game.current_player
-            current_game.game_over = True
+        # Valid move - build response from events
+        combat_result = None
+        removed_pieces = []
+
+        for event in result['events']:
+            if event['type'] == 'combat':
+                combat_result = event['combat_data']
+            elif event['type'] == 'piece_removed':
+                removed_pieces.append({
+                    'row': event['row'],
+                    'col': event['col'],
+                    'piece': event['piece'],  # Already JSON from API
+                    'reason': event['reason']
+                })
+
+        # Get placed piece from events
+        placed_piece = None
+        for event in result['events']:
+            if event['type'] == 'piece_placed':
+                placed_piece = event['piece']
+                break
 
         # Build response
         response = {
             'row': row,
             'col': col,
-            'piece': piece_to_dict(piece),
+            'piece': placed_piece,
             'combat': combat_to_dict(combat_result),
-            'game_state': get_game_state()
+            'removed_pieces': removed_pieces,
+            'game_state': api_state_to_gui_state(result['game_state'])
         }
 
         emit('ai_moved', response, broadcast=True)
 
-        # Switch player if game not over
-        if not current_game.game_over:
-            current_game.switch_player()
-            current_game.turn_count += 1
+        # If next player is also AI, continue with their turn
+        if not result['game_over'] and hasattr(current_game.current_player, 'choose_move'):
+            socketio.sleep(0.5)
+            process_ai_turn()
 
-            # If next player is also AI, continue with their turn
-            # Note: Using iteration instead of recursion to avoid stack overflow
-            if hasattr(current_game.current_player, 'choose_move'):
-                socketio.sleep(0.5)
-                process_ai_turn()
+def api_state_to_gui_state(api_state):
+    """Convert API game state format to GUI format"""
+    return {
+        'board': {
+            'width': api_state['board_dimensions']['width'],
+            'height': api_state['board_dimensions']['height'],
+            'grid': [[convert_api_piece(cell) for cell in row] for row in api_state['board']]
+        },
+        'current_player': api_state['current_player'],
+        'turn_count': api_state['turn'],
+        'game_over': api_state['game_over'],
+        'winner': api_state['winner'],
+        'red_pieces_remaining': len(api_state['players']['R']['pieces_remaining']),
+        'blue_pieces_remaining': len(api_state['players']['B']['pieces_remaining']),
+        'red_pieces': [convert_api_piece(p) for p in api_state['players']['R']['pieces_remaining']],
+        'blue_pieces': [convert_api_piece(p) for p in api_state['players']['B']['pieces_remaining']]
+    }
+
+def convert_api_piece(piece_json):
+    """Convert API piece format to GUI format"""
+    if piece_json is None:
+        return None
+    return {
+        'color': piece_json['player_color'],
+        'pips': piece_json['pips'],
+        'power': piece_json['power']
+    }
 
 def get_game_state():
     """Convert game state to dictionary for JSON"""
     if not current_game:
         return None
 
-    return {
-        'board': board_to_dict(current_game.board),
-        'current_player': current_game.current_player.color,
-        'turn_count': current_game.turn_count,
-        'game_over': current_game.game_over,
-        'winner': current_game.winner.color if current_game.winner else None,
-        'red_pieces_remaining': len(current_game.red_player.pieces),
-        'blue_pieces_remaining': len(current_game.blue_player.pieces),
-        'red_pieces': [piece_to_dict(p) for p in current_game.red_player.pieces],
-        'blue_pieces': [piece_to_dict(p) for p in current_game.blue_player.pieces]
-    }
-
-def board_to_dict(board):
-    """Convert board to dictionary"""
-    grid = []
-    for row in range(board.height):
-        grid_row = []
-        for col in range(board.width):
-            piece = board.grid[row][col]
-            if piece:
-                grid_row.append(piece_to_dict(piece))
-            else:
-                grid_row.append(None)
-        grid.append(grid_row)
-    return {
-        'width': board.width,
-        'height': board.height,
-        'grid': grid
-    }
+    # Use API to get state
+    api_state = current_game.get_game_state()
+    return api_state_to_gui_state(api_state)
 
 def piece_to_dict(piece):
-    """Convert piece to dictionary"""
+    """Convert GamePiece object to dictionary (for rotation preview)"""
     return {
         'color': piece.player_color,
         'pips': piece.pips,

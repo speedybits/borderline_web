@@ -1,5 +1,7 @@
 import random
 import copy
+import json
+from datetime import datetime
 
 class GamePiece:
     def __init__(self, player_color, pip_pattern=None):
@@ -720,6 +722,22 @@ class Player:
                 result += "\n"
         
         return result
+
+class GUIHumanPlayer(Player):
+    """Player controlled via GUI - waits for move from GUI server"""
+    def __init__(self, color, name):
+        super().__init__(color, name)
+        self.pending_move = None  # Will be set by GUI server
+
+    def choose_move(self, board):
+        """Return the move set by the GUI server"""
+        if self.pending_move is None:
+            return None, None, None, None, None
+
+        # Return and clear the pending move
+        move = self.pending_move
+        self.pending_move = None
+        return move
 
 class AIPlayer(Player):
     def __init__(self, color, name):
@@ -1461,6 +1479,10 @@ class BorderlineGPT:
         self.game_over = False
         self.winner = None
         self.last_placed_pos = None  # Track last placed piece for highlighting
+
+        # Initialize API
+        self.move_history = []
+        self.game_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     def switch_player(self):
         self.current_player = self.blue_player if self.current_player == self.red_player else self.red_player
@@ -1588,7 +1610,425 @@ class BorderlineGPT:
 
         self.switch_player()
         self.turn_count += 1
-    
+
+    def _execute_move_internal(self, piece, row, col, piece_idx):
+        """
+        Internal method: Execute a move with an already-rotated piece
+        Returns a complete result dict with validation, events, and new state
+
+        Note: piece should already be rotated before calling this method
+        """
+        result = {
+            'valid': False,
+            'reason': None,
+            'events': [],
+            'game_over': False,
+            'winner': None
+        }
+
+        # Validate piece ownership
+        if piece.player_color != self.current_player.color:
+            result['reason'] = 'Piece does not belong to current player'
+            return result
+
+        # Validate placement using existing game logic
+        player_pieces = self.board.get_player_pieces(self.current_player.color)
+        if not self.board.can_place_piece(piece, row, col, player_pieces):
+            result['reason'] = 'Invalid placement - must connect to existing pieces or home row'
+            return result
+
+        # VALID MOVE - now execute using existing game engine logic
+        result['valid'] = True
+
+        # Remove piece from hand
+        self.current_player.pieces.pop(piece_idx)
+
+        # Check for combat BEFORE placing
+        all_pieces = self.board.get_player_pieces('R') + self.board.get_player_pieces('B')
+        adjacent_pips = self.board.check_pip_adjacency(piece, row, col, all_pieces)
+
+        # Place piece
+        self.board.place_piece(piece, row, col)
+        result['events'].append({
+            'type': 'piece_placed',
+            'player': self.current_player.color,
+            'row': row,
+            'col': col,
+            'piece': self.piece_to_json(piece)
+        })
+
+        # Handle combat
+        combat = self.board.resolve_combat(piece, row, col, adjacent_pips)
+        if combat:
+            result['events'].append({
+                'type': 'combat',
+                'combat_data': combat
+            })
+
+            # Remove losing pieces
+            loser_color = combat['defender_color'] if combat['winner'] == combat['attacker_color'] else combat['attacker_color']
+
+            if loser_color == combat['defender_color']:
+                for defender in combat['defenders']:
+                    removed = self.board.remove_piece(defender['row'], defender['col'])
+                    if removed:
+                        result['events'].append({
+                            'type': 'piece_removed',
+                            'reason': 'combat_loss',
+                            'row': defender['row'],
+                            'col': defender['col'],
+                            'piece': self.piece_to_json(removed)
+                        })
+            else:
+                removed = self.board.remove_piece(row, col)
+                if removed:
+                    result['events'].append({
+                        'type': 'piece_removed',
+                        'reason': 'combat_loss',
+                        'row': row,
+                        'col': col,
+                        'piece': self.piece_to_json(removed)
+                    })
+
+            # Remove disconnected pieces
+            disconnected = self.board.remove_disconnected_pieces(loser_color)
+            for disc in disconnected:
+                result['events'].append({
+                    'type': 'piece_removed',
+                    'reason': 'disconnected',
+                    'row': disc['row'],
+                    'col': disc['col'],
+                    'piece': self.piece_to_json(disc['piece'])
+                })
+
+        # Check victory
+        if self.board.check_victory(self.current_player.color):
+            self.winner = self.current_player
+            self.game_over = True
+            result['game_over'] = True
+            result['winner'] = self.current_player.color
+            return result
+
+        # Switch player
+        self.switch_player()
+        self.turn_count += 1
+
+        return result
+
+    # ==================== API LAYER ====================
+    # Clean JSON-based API for external clients (GUI, AI engines, replays)
+    # ===================================================
+
+    def __init_api__(self):
+        """Initialize API-specific attributes"""
+        self.move_history = []  # List of all moves in JSON format
+        self.game_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    def piece_to_json(self, piece):
+        """Convert a GamePiece to JSON-serializable dict"""
+        return {
+            'player_color': piece.player_color,
+            'pips': piece.pips,
+            'power': piece.get_power_level()
+        }
+
+    def json_to_piece(self, piece_json):
+        """Convert JSON dict to GamePiece"""
+        return GamePiece(piece_json['player_color'], piece_json['pips'])
+
+    def get_piece_type_identifier(self, piece):
+        """
+        Identify the piece type from the standard set
+        Returns: tuple of (type_name, type_index)
+        - type_name: 'LINE', 'DIAG', 'T', 'X', 'PLUS', 'BLOCK'
+        - type_index: which variation of that type (0-2)
+        """
+        power = piece.calculate_power()
+        pips = piece.pips
+
+        # Check patterns (normalized, ignoring color)
+        # Vertical line pattern
+        if (pips[0][1] != '_' and pips[1][1] != '_' and pips[2][1] != '_' and
+            pips[0][0] == '_' and pips[0][2] == '_' and
+            pips[1][0] == '_' and pips[1][2] == '_' and
+            pips[2][0] == '_' and pips[2][2] == '_'):
+            return 'LINE'
+
+        # Diagonal pattern
+        if (pips[0][0] != '_' and pips[1][1] != '_' and pips[2][2] != '_' and
+            pips[0][1] == '_' and pips[0][2] == '_' and
+            pips[1][0] == '_' and pips[1][2] == '_' and
+            pips[2][0] == '_' and pips[2][1] == '_'):
+            return 'DIAG'
+
+        # T-shape pattern
+        if (pips[0][0] != '_' and pips[0][2] != '_' and
+            pips[1][1] != '_' and pips[2][1] != '_' and
+            pips[0][1] == '_' and pips[1][0] == '_' and pips[1][2] == '_' and
+            pips[2][0] == '_' and pips[2][2] == '_'):
+            return 'T'
+
+        # X-shape pattern
+        if (pips[0][0] != '_' and pips[0][2] != '_' and
+            pips[1][1] != '_' and
+            pips[2][0] != '_' and pips[2][2] != '_' and
+            pips[0][1] == '_' and pips[1][0] == '_' and pips[1][2] == '_' and pips[2][1] == '_'):
+            return 'X'
+
+        # Plus-shape pattern
+        if (pips[0][1] != '_' and
+            pips[1][0] != '_' and pips[1][1] != '_' and pips[1][2] != '_' and
+            pips[2][1] != '_' and
+            pips[0][0] == '_' and pips[0][2] == '_' and
+            pips[2][0] == '_' and pips[2][2] == '_'):
+            return 'PLUS'
+
+        # Full block pattern
+        if all(pips[i][j] != '_' for i in range(3) for j in range(3)):
+            return 'BLOCK'
+
+        return 'UNKNOWN'
+
+    def execute_move(self, move_json):
+        """
+        Execute a move from JSON format
+
+        Input format:
+        {
+            "player": "R" or "B",
+            "piece_index": 0-15,  # Index in player's hand
+            "position": [row, col],
+            "rotation": 0-3  # Number of 90-degree clockwise rotations
+        }
+
+        Returns:
+        {
+            "valid": true/false,
+            "reason": "error message if invalid",
+            "events": [...],  # List of game events
+            "game_state": {...},  # Current game state after move
+            "game_over": true/false,
+            "winner": "R"/"B"/null
+        }
+        """
+        # Validate move structure
+        required_fields = ['player', 'piece_index', 'position', 'rotation']
+        for field in required_fields:
+            if field not in move_json:
+                return {
+                    'valid': False,
+                    'reason': f'Missing required field: {field}',
+                    'events': [],
+                    'game_state': self.get_game_state(),
+                    'game_over': False,
+                    'winner': None
+                }
+
+        # Validate it's the correct player's turn
+        if move_json['player'] != self.current_player.color:
+            return {
+                'valid': False,
+                'reason': f'Not {move_json["player"]} player\'s turn',
+                'events': [],
+                'game_state': self.get_game_state(),
+                'game_over': False,
+                'winner': None
+            }
+
+        # Validate piece index
+        piece_idx = move_json['piece_index']
+        if piece_idx < 0 or piece_idx >= len(self.current_player.pieces):
+            return {
+                'valid': False,
+                'reason': f'Invalid piece_index: {piece_idx}',
+                'events': [],
+                'game_state': self.get_game_state(),
+                'game_over': False,
+                'winner': None
+            }
+
+        # Get piece and apply rotation
+        piece = self.current_player.pieces[piece_idx]
+        rotation = move_json['rotation']
+        # Convert rotation count (0-3) to degrees (0, 90, 180, 270)
+        degrees = (rotation % 4) * 90
+        rotated_piece = piece.rotate(degrees)
+
+        # Extract position
+        row, col = move_json['position']
+
+        # Validate placement using existing game logic
+        player_pieces = self.board.get_player_pieces(self.current_player.color)
+        if not self.board.can_place_piece(rotated_piece, row, col, player_pieces):
+            return {
+                'valid': False,
+                'reason': 'Invalid placement - must connect to existing pieces or home row',
+                'events': [],
+                'game_state': self.get_game_state(),
+                'game_over': False,
+                'winner': None
+            }
+
+        # Use the internal _execute_move_internal method with the rotated piece
+        result = self._execute_move_internal(rotated_piece, row, col, piece_idx)
+
+        # If valid, record the move
+        if result['valid']:
+            move_record = move_json.copy()
+            move_record['timestamp'] = datetime.now().isoformat()
+            move_record['turn'] = self.turn_count - 1  # Already incremented
+            self.move_history.append(move_record)
+
+        # Add game state to result
+        result['game_state'] = self.get_game_state()
+
+        return result
+
+    def get_game_state(self):
+        """
+        Get complete game state in JSON format
+
+        Returns:
+        {
+            "game_id": "...",
+            "turn": 5,
+            "current_player": "R",
+            "game_over": false,
+            "winner": null,
+            "board": [[{piece}, {piece}, ...], ...],  # 8 rows x 6 columns
+            "board_dimensions": {"height": 8, "width": 6},
+            "players": {
+                "R": {
+                    "name": "Red Player",
+                    "pieces_remaining": [{piece}, ...],
+                    "pieces_on_board": 3
+                },
+                "B": {...}
+            }
+        }
+        """
+        # Build board representation
+        board_state = []
+        for row in range(self.board.height):
+            board_row = []
+            for col in range(self.board.width):
+                cell = self.board.grid[row][col]
+                if cell is None:
+                    board_row.append(None)
+                else:
+                    board_row.append(self.piece_to_json(cell))
+            board_state.append(board_row)
+
+        return {
+            'game_id': getattr(self, 'game_id', 'unknown'),
+            'turn': self.turn_count,
+            'current_player': self.current_player.color,
+            'game_over': self.game_over,
+            'winner': self.winner.color if self.winner else None,
+            'board': board_state,
+            'board_dimensions': {'height': self.board.height, 'width': self.board.width},
+            'players': {
+                'R': {
+                    'name': self.red_player.name,
+                    'pieces_remaining': [self.piece_to_json(p) for p in self.red_player.pieces],
+                    'pieces_on_board': len(self.board.get_player_pieces('R'))
+                },
+                'B': {
+                    'name': self.blue_player.name,
+                    'pieces_remaining': [self.piece_to_json(p) for p in self.blue_player.pieces],
+                    'pieces_on_board': len(self.board.get_player_pieces('B'))
+                }
+            }
+        }
+
+    def get_valid_moves(self, player_color=None):
+        """
+        Get all valid moves for a player
+
+        Returns: list of valid move JSON objects
+        """
+        if player_color is None:
+            player_color = self.current_player.color
+
+        if player_color != self.current_player.color:
+            return []  # Can only get moves for current player
+
+        valid_moves = []
+        player_pieces = self.board.get_player_pieces(player_color)
+
+        for piece_idx, piece in enumerate(self.current_player.pieces):
+            # Try all rotations
+            for rotation in range(4):
+                # Convert rotation count to degrees
+                degrees = rotation * 90
+                rotated_piece = piece.rotate(degrees)
+
+                # Try all board positions
+                for row in range(self.board.height):
+                    for col in range(self.board.width):
+                        if self.board.can_place_piece(rotated_piece, row, col, player_pieces):
+                            valid_moves.append({
+                                'player': player_color,
+                                'piece_index': piece_idx,
+                                'position': [row, col],
+                                'rotation': rotation
+                            })
+
+        return valid_moves
+
+    def export_game(self, filename=None):
+        """
+        Export complete game (state + move history) to JSON file
+
+        Returns: filename where game was saved
+        """
+        if filename is None:
+            filename = f"game_{self.game_id}.json"
+
+        game_export = {
+            'game_id': getattr(self, 'game_id', 'unknown'),
+            'timestamp': datetime.now().isoformat(),
+            'players': {
+                'R': self.red_player.name,
+                'B': self.blue_player.name
+            },
+            'move_history': self.move_history,
+            'final_state': self.get_game_state(),
+            'game_over': self.game_over,
+            'winner': self.winner.color if self.winner else None
+        }
+
+        with open(filename, 'w') as f:
+            json.dump(game_export, f, indent=2)
+
+        return filename
+
+    @staticmethod
+    def replay_game(filename):
+        """
+        Replay a game from exported JSON file
+
+        Returns: BorderlineGPT instance with game state restored
+        """
+        with open(filename, 'r') as f:
+            game_data = json.load(f)
+
+        # Create new game
+        game = BorderlineGPT()
+        game.game_id = game_data['game_id']
+
+        # Replay all moves
+        for move in game_data['move_history']:
+            result = game.execute_move(move)
+            if not result['valid']:
+                print(f"Warning: Move {move} failed during replay: {result['reason']}")
+
+        return game
+
+    def get_move_history(self):
+        """Get the complete move history in JSON format"""
+        return self.move_history.copy()
+
     def display_game_state(self):
         """Display the complete game state including board and remaining pieces"""
         print(self.board.display(highlight_positions=self.last_placed_pos))
