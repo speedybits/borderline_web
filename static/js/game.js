@@ -361,6 +361,43 @@ function hideConfirmButton() {
     }
 }
 
+function resetGameState() {
+    console.log('Resetting client-side game state...');
+
+    // Clear all game state variables
+    gameState = null;
+    selectedPiece = null;
+    currentGameMode = null;
+    rotationMode = false;
+    pendingPiece = null;
+
+    // Clear the canvas
+    if (renderer) {
+        renderer.clear();
+    }
+
+    // Clear piece pools
+    const redPiecesPool = document.getElementById('red-pieces-pool');
+    const bluePiecesPool = document.getElementById('blue-pieces-pool');
+    if (redPiecesPool) redPiecesPool.innerHTML = '';
+    if (bluePiecesPool) bluePiecesPool.innerHTML = '';
+
+    // Clear status messages
+    const statusMessages = document.getElementById('status-messages');
+    if (statusMessages) {
+        statusMessages.innerHTML = '<div class="status-message">Game started. Red player begins.</div>';
+    }
+
+    // Hide confirm buttons if visible
+    hideConfirmButton();
+
+    // Reset turn indicator
+    const turnNumber = document.getElementById('turn-number');
+    if (turnNumber) turnNumber.textContent = '1';
+
+    console.log('Client-side game state reset complete');
+}
+
 // Export functions for HTML inline handlers
 window.handleGameStarted = handleGameStarted;
 window.updateGameState = updateGameState;
@@ -368,3 +405,4 @@ window.handlePiecePlaced = handlePiecePlaced;
 window.handlePiecePendingRotation = handlePiecePendingRotation;
 window.handlePieceRotated = handlePieceRotated;
 window.addStatusMessage = addStatusMessage;
+window.resetGameState = resetGameState;

@@ -390,6 +390,46 @@ class ReplayController {
         alert('Replay Error: ' + message);
         console.error(message);
     }
+
+    reset() {
+        console.log('Resetting replay controller...');
+
+        // Stop playback
+        this.pause();
+
+        // Clear state
+        this.isPlaying = false;
+        this.currentMove = 0;
+        this.totalMoves = 0;
+        this.playbackSpeed = 1;
+        this.playbackInterval = null;
+        this.replayLoaded = false;
+
+        // Reset UI
+        document.getElementById('current-move').textContent = 0;
+        document.getElementById('total-moves').textContent = 0;
+        document.getElementById('replay-slider').value = 0;
+        document.getElementById('replay-slider').max = 100;
+
+        // Show upload section, hide playback section
+        const uploadSection = document.getElementById('replay-upload-section');
+        const playbackSection = document.getElementById('replay-playback-section');
+
+        if (uploadSection) {
+            uploadSection.classList.remove('hidden');
+        }
+        if (playbackSection) {
+            playbackSection.classList.add('hidden');
+        }
+
+        // Reset file input
+        const fileInput = document.getElementById('replay-file-input');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+
+        console.log('Replay controller reset complete');
+    }
 }
 
 // Initialize replay controller when page loads
@@ -397,5 +437,7 @@ let replayController;
 
 window.addEventListener('load', () => {
     replayController = new ReplayController();
+    // Make it globally accessible for cleanup
+    window.replayController = replayController;
     console.log('Replay controller initialized');
 });

@@ -38,18 +38,15 @@
 
     <!-- Game Screen -->
     <div id="game-screen" class="screen">
-        <!-- Header -->
-        <div class="game-header">
-            <div class="header-left">
+        <!-- Header (hidden to save space) -->
+        <div class="game-header hidden">
+            <div class="header-content">
                 <h2 class="game-title">BORDERLINE</h2>
-            </div>
-            <div class="header-center">
-                <div id="turn-indicator" class="turn-indicator">
-                    <span id="current-player-text">RED PLAYER</span>
-                </div>
-            </div>
-            <div class="header-right">
                 <div class="turn-count">Turn: <span id="turn-number">1</span></div>
+            </div>
+            <!-- Hidden turn indicator for game logic (still updates, just not displayed) -->
+            <div id="turn-indicator" class="turn-indicator">
+                <span id="current-player-text">RED PLAYER</span>
             </div>
         </div>
 
@@ -132,7 +129,10 @@
 
         <!-- Status Messages -->
         <div class="status-container">
-            <div class="status-header">BATTLE LOG</div>
+            <div class="status-header-row">
+                <div class="status-header">BATTLE LOG</div>
+                <button class="exit-btn" onclick="returnToMenu()">EXIT</button>
+            </div>
             <div id="status-messages" class="status-messages">
                 <div class="status-message">Game started. Red player begins.</div>
             </div>
@@ -182,6 +182,15 @@
             document.getElementById('start-screen').classList.remove('active');
             document.getElementById('game-screen').classList.add('active');
 
+            // Hide replay controls and reset replay state (in case coming from replay mode)
+            document.getElementById('replay-controls').classList.add('hidden');
+            if (window.replayController) {
+                window.replayController.reset();
+            }
+
+            // Hide AI thinking indicator (in case it was left visible)
+            document.getElementById('ai-thinking').classList.add('hidden');
+
             // Send start game event to server
             socket.emit('start_game', {
                 mode: gameMode,
@@ -197,9 +206,33 @@
         }
 
         function returnToMenu() {
+            console.log('Returning to menu - stopping game and resetting all state...');
+
+            // Stop the server-side game and clear all server state
+            if (typeof socket !== 'undefined' && socket) {
+                socket.emit('stop_game');
+            }
+
+            // Reset client-side game state
+            if (typeof resetGameState === 'function') {
+                resetGameState();
+            }
+
+            // Reset replay controller state
+            if (window.replayController) {
+                window.replayController.reset();
+            }
+
+            // Hide all overlays and indicators
             document.getElementById('victory-screen').classList.add('hidden');
+            document.getElementById('replay-controls').classList.add('hidden');
+            document.getElementById('ai-thinking').classList.add('hidden');
+
+            // Switch screens
             document.getElementById('game-screen').classList.remove('active');
             document.getElementById('start-screen').classList.add('active');
+
+            console.log('Return to menu complete - all state cleared');
         }
 
         function enterReplayMode() {
@@ -214,6 +247,11 @@
         }
 
         function closeReplay() {
+            // Reset replay state
+            if (window.replayController) {
+                window.replayController.reset();
+            }
+
             document.getElementById('replay-controls').classList.add('hidden');
             returnToMenu();
         }

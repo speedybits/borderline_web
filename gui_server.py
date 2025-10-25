@@ -35,7 +35,10 @@ def handle_connect():
 @socketio.on('start_game')
 def handle_start_game(data):
     """Initialize a new game using proper BorderlineGPT constructor"""
-    global current_game
+    global current_game, replay_state
+
+    # Clear replay state when starting a new game
+    replay_state = None
 
     mode = data.get('mode', 'human_vs_human')
     red_type = data.get('red_type', 'human')
@@ -81,6 +84,21 @@ def handle_start_game(data):
     # If Red is AI, make first move
     if red_type in ['ai', 'random']:
         process_ai_turn()
+
+@socketio.on('stop_game')
+def handle_stop_game():
+    """Stop the current game and clear all server state"""
+    global current_game, pending_placement, replay_state
+
+    print("Stopping game and clearing all server state...")
+
+    # Clear all server state
+    current_game = None
+    pending_placement = None
+    replay_state = None
+
+    emit('game_stopped', {'status': 'stopped'})
+    print("Game stopped, all state cleared")
 
 @socketio.on('get_state')
 def handle_get_state():

@@ -724,3 +724,19 @@ body {
         0 0 40px var(--amber),
         inset 0 0 10px var(--bg-black);
 }
+
+/* Exit Button */
+.exit-btn {
+    color: var(--red-neon);
+    border-color: var(--red-neon);
+    box-shadow: 0 0 10px var(--red-neon);
+}
+
+.exit-btn:hover {
+    background: var(--red-neon);
+    color: var(--bg-black);
+    box-shadow:
+        0 0 20px var(--red-neon),
+        0 0 40px var(--red-neon),
+        inset 0 0 10px var(--bg-black);
+}
