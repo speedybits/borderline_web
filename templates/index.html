@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BORDERLINE - TRON Edition</title>
+    <title>BORDERLINE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
@@ -16,7 +16,6 @@
     <div id="start-screen" class="screen active">
         <div class="logo-container">
             <h1 class="game-logo">BORDERLINE</h1>
-            <p class="subtitle">TRON EDITION</p>
         </div>
         <div class="menu-container">
             <button class="menu-btn" onclick="startGame('human', 'human')">
@@ -30,6 +29,9 @@
             </button>
             <button class="menu-btn" onclick="startGame('ai', 'ai')">
                 AI VS AI (WATCH)
+            </button>
+            <button class="menu-btn secondary" onclick="enterReplayMode()">
+                🎬 REPLAY MODE
             </button>
         </div>
     </div>
@@ -51,14 +53,48 @@
             </div>
         </div>
 
+        <!-- Replay Controls -->
+        <div id="replay-controls" class="replay-controls hidden">
+            <div class="replay-header">
+                <span class="replay-title">REPLAY MODE</span>
+                <button class="replay-close-btn" onclick="closeReplay()">✕</button>
+            </div>
+
+            <!-- Upload section - shown only when no replay is loaded -->
+            <div id="replay-upload-section" class="replay-upload-section">
+                <input type="file" id="replay-file-input" accept=".json" style="display: none;">
+                <button class="replay-btn upload-btn" onclick="console.log('Upload button clicked'); document.getElementById('replay-file-input').click();">
+                    📁 Upload Replay
+                </button>
+                <div id="drop-zone" class="drop-zone">
+                    <p>Or drag & drop a .json file here</p>
+                </div>
+            </div>
+
+            <!-- Playback controls - shown only when replay is loaded -->
+            <div id="replay-playback-section" class="replay-playback-section hidden">
+                <div class="replay-controls-row">
+                    <div class="replay-buttons">
+                        <button class="replay-btn" id="first-move-btn" title="First Move (Home)">⏮️</button>
+                        <button class="replay-btn" id="prev-move-btn" title="Previous (Left Arrow)">◀️</button>
+                        <button class="replay-btn" id="play-pause-btn" title="Play/Pause (Space)">▶️</button>
+                        <button class="replay-btn" id="next-move-btn" title="Next (Right Arrow)">▶️</button>
+                        <button class="replay-btn" id="last-move-btn" title="Last Move (End)">⏭️</button>
+                    </div>
+                    <div class="replay-progress">
+                        <span id="current-move">0</span> / <span id="total-moves">0</span>
+                    </div>
+                </div>
+                <div class="replay-slider-container">
+                    <input type="range" id="replay-slider" class="replay-slider" min="0" max="100" value="0">
+                </div>
+            </div>
+        </div>
+
         <!-- Main Game Area -->
         <div class="game-container">
-            <!-- Red Player Sidebar -->
-            <div class="player-sidebar red-sidebar">
-                <div class="sidebar-header">RED PLAYER</div>
-                <div class="pieces-count">
-                    <span id="red-pieces-count">16</span> PIECES
-                </div>
+            <!-- Red Player Pieces -->
+            <div class="player-pieces-bar red-sidebar">
                 <div id="red-pieces-pool" class="pieces-pool">
                     <!-- Red pieces will be rendered here -->
                 </div>
@@ -70,12 +106,8 @@
                 <div id="hover-preview" class="hover-preview"></div>
             </div>
 
-            <!-- Blue Player Sidebar -->
-            <div class="player-sidebar blue-sidebar">
-                <div class="sidebar-header">BLUE PLAYER</div>
-                <div class="pieces-count">
-                    <span id="blue-pieces-count">16</span> PIECES
-                </div>
+            <!-- Blue Player Pieces -->
+            <div class="player-pieces-bar blue-sidebar">
                 <div id="blue-pieces-pool" class="pieces-pool">
                     <!-- Blue pieces will be rendered here -->
                 </div>
@@ -132,12 +164,13 @@
     <script src="{{ url_for('static', filename='js/socket_handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/renderer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/piece_selector.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/replay.js') }}"></script>
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
 
     <script>
         // Initialize game when page loads
         window.addEventListener('load', () => {
-            console.log('Borderline TRON Edition loaded');
+            console.log('Borderline loaded');
             initializeSocketConnection();
         });
 
@@ -167,6 +200,22 @@
             document.getElementById('victory-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('active');
             document.getElementById('start-screen').classList.add('active');
+        }
+
+        function enterReplayMode() {
+            // Hide start screen, show game screen
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+
+            // Show replay controls
+            document.getElementById('replay-controls').classList.remove('hidden');
+
+            console.log('Entered replay mode');
+        }
+
+        function closeReplay() {
+            document.getElementById('replay-controls').classList.add('hidden');
+            returnToMenu();
         }
     </script>
 </body>

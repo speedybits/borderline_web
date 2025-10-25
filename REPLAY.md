@@ -42,16 +42,45 @@ game = BorderlineGPT()
 
 # ... play the game ...
 
-# Save when done
+# Save when done (automatically saves to previous_games/ folder)
 game.export_game('my_game.json')
 ```
 
-### 2. Replay in GUI
+The game is now automatically saved in `previous_games/my_game.json`!
+
+### 2. Replay in GUI (Two Methods)
+
+#### Method A: Using the GUI Controls (Recommended)
 
 **Start the server:**
 ```bash
 python3 gui_server.py
 ```
+
+**Open browser:**
+1. Go to `http://localhost:5000`
+2. Click **"REPLAY MODE"** button
+3. Upload your replay file:
+   - Click **"📁 Upload Replay"** button, OR
+   - Drag & drop your `.json` file into the drop zone
+
+**Control playback:**
+- Click **⏮️** to jump to first move
+- Click **◀️** to go to previous move (or press **Left Arrow**)
+- Click **▶️** to play/pause (or press **Spacebar**)
+- Click **▶️** to go to next move (or press **Right Arrow**)
+- Click **⏭️** to jump to last move
+- Drag the slider to jump to any specific move
+- Click speed buttons (0.5x, 1x, 2x, 4x) to change playback speed
+
+**Keyboard Shortcuts:**
+- **Left Arrow**: Previous move
+- **Right Arrow**: Next move
+- **Home**: First move
+- **End**: Last move
+- **Spacebar**: Play/Pause
+
+#### Method B: Using Console Commands
 
 **Open browser console (F12) and load replay:**
 ```javascript
@@ -81,12 +110,32 @@ socket.emit('replay_pause');
 ### Server Events (emit from client)
 
 #### `load_replay`
-Load a game from JSON file
+Load a game from JSON file (stored on server)
 
 **Parameters:**
 ```javascript
 {
-  filename: 'replay_test.json'  // File in project root
+  filename: 'replay_test.json'  // File in project root or previous_games/
+}
+```
+
+**Response:** `replay_loaded` event
+
+---
+
+#### `load_replay_data`
+Load a game from JSON data (for file uploads from browser)
+
+**Parameters:**
+```javascript
+{
+  game_data: {
+    game_id: '...',
+    timestamp: '...',
+    players: {...},
+    move_history: [...],
+    final_state: {...}
+  }
 }
 ```
 
@@ -385,11 +434,51 @@ print(f"Turns: {game.turn_count}")
 print("\nReady for GUI replay!")
 ```
 
+## GUI Features
+
+The replay system now includes a full-featured GUI with:
+
+### Visual Controls
+- **Play/Pause Button**: Start and stop auto-play
+- **Previous/Next Buttons**: Step through moves one at a time
+- **First/Last Buttons**: Jump to the beginning or end
+- **Progress Slider**: Scrub to any move in the game
+- **Speed Control**: Adjust playback speed (0.5x, 1x, 2x, 4x)
+- **Move Counter**: Shows current move and total moves
+
+### File Upload
+- **Upload Button**: Click to select a .json replay file
+- **Drag & Drop**: Drag replay files directly into the drop zone
+- **Auto-Detection**: Automatically validates and loads uploaded files
+
+### Keyboard Shortcuts
+- **←** Left Arrow: Previous move
+- **→** Right Arrow: Next move
+- **Home**: Jump to first move
+- **End**: Jump to last move
+- **Space**: Play/Pause toggle
+
+### Move Details Display
+Shows detailed information about the current move:
+- Player (Red or Blue)
+- Position on board
+- Piece index and rotation
+- Combat results (if any)
+
+### Neon Theme
+- Glowing neon borders and buttons
+- Animated effects on hover
+- Consistent with game's visual style
+- Smooth transitions and feedback
+
 ## Benefits
 
 ✅ **Perfect Visualization** - See terminal games with full graphics
 ✅ **Step-by-Step Analysis** - Pause and examine any move
 ✅ **Time Travel** - Jump forward/backward through the game
+✅ **Easy Upload** - Drag & drop replay files from anywhere
+✅ **Keyboard Control** - Navigate quickly with shortcuts
+✅ **Variable Speed** - Watch at your preferred pace
 ✅ **Verification** - Confirm game logic is working correctly
 ✅ **Documentation** - Create visual records of games
 ✅ **Education** - Teach game mechanics visually

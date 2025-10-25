@@ -1976,14 +1976,26 @@ class BorderlineGPT:
 
         return valid_moves
 
-    def export_game(self, filename=None):
+    def export_game(self, filename=None, auto_directory='previous_games'):
         """
         Export complete game (state + move history) to JSON file
 
+        Args:
+            filename: Optional filename. If None, auto-generates with timestamp
+            auto_directory: Directory for auto-saves. Set to None to save in current dir
+
         Returns: filename where game was saved
         """
+        # Auto-generate filename if not provided
         if filename is None:
             filename = f"game_{self.game_id}.json"
+
+        # If auto_directory specified, ensure it exists and use it
+        if auto_directory:
+            import os
+            if not os.path.exists(auto_directory):
+                os.makedirs(auto_directory)
+            filename = os.path.join(auto_directory, os.path.basename(filename))
 
         game_export = {
             'game_id': getattr(self, 'game_id', 'unknown'),
@@ -2332,12 +2344,12 @@ if __name__ == "__main__":
     parser.add_argument('--blue_random', action='store_true',
                         help='Blue makes random legal moves, Red uses AI')
     parser.add_argument('--gui', action='store_true',
-                        help='Launch TRON-style web GUI on http://localhost:5000')
+                        help='Launch web GUI on http://localhost:5000')
     args = parser.parse_args()
 
     if args.gui:
         print("=" * 60)
-        print("BORDERLINE: TRON GUI Mode")
+        print("BORDERLINE: GUI Mode")
         print("=" * 60)
         print("Starting web server...")
         import subprocess

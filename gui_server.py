@@ -12,7 +12,7 @@ import sys
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'borderline_tron_secret_key'
+app.config['SECRET_KEY'] = 'borderline_secret_key'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Global game state
@@ -623,9 +623,58 @@ def handle_get_replay_state():
         'is_playing': replay_state['is_playing']
     })
 
+@socketio.on('load_replay_data')
+def handle_load_replay_data(data):
+    """Load a game from JSON data (for file uploads)"""
+    global replay_state, current_game
+
+    try:
+        game_data = data.get('game_data')
+        if not game_data:
+            emit('replay_error', {'message': 'No game data provided'})
+            return
+
+        # Extract move history from uploaded data
+        move_history = game_data.get('move_history', [])
+
+        if not move_history:
+            emit('replay_error', {'message': 'No move history found in uploaded file'})
+            return
+
+        # Create fresh game for step-by-step replay
+        fresh_game = BorderlineGPT()
+
+        replay_state = {
+            'game': fresh_game,
+            'move_history': move_history,
+            'current_move': -1,  # Start before first move
+            'is_playing': False,
+            'total_moves': len(move_history)
+        }
+
+        # Set as current game for rendering
+        current_game = fresh_game
+
+        # Send initial state
+        emit('replay_loaded', {
+            'success': True,
+            'total_moves': len(move_history),
+            'game_state': api_state_to_gui_state(fresh_game.get_game_state()),
+            'message': f'Loaded replay from upload with {len(move_history)} moves'
+        }, broadcast=True)
+
+        print(f"Loaded replay from upload: {len(move_history)} moves")
+
+    except Exception as e:
+        emit('replay_error', {
+            'success': False,
+            'message': f'Failed to load replay data: {str(e)}'
+        })
+        print(f"Error loading replay data: {e}")
+
 if __name__ == '__main__':
     print("=" * 60)
-    print("BORDERLINE - TRON GUI Server")
+    print("BORDERLINE - GUI Server")
     print("=" * 60)
     print("Starting server on http://localhost:5000")
     print("Press Ctrl+C to stop")

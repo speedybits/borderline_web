@@ -1,7 +1,7 @@
 # Borderline GUI Version - Design Document
 
 ## Overview
-A web-based GUI implementation of Borderline with TRON-inspired neon aesthetics, featuring glowing Red and Blue graphics on a semi-reflective black background with mouse control and animated dice rolling.
+A web-based GUI implementation of Borderline with neon aesthetics, featuring glowing Red and Blue graphics on a semi-reflective black background with mouse control and animated dice rolling.
 
 ## Technology Stack
 
@@ -13,12 +13,12 @@ A web-based GUI implementation of Borderline with TRON-inspired neon aesthetics,
 ### Frontend
 - **HTML5 Canvas**: For rendering the game board and pieces with custom graphics
 - **Socket.IO (client)**: Real-time updates from server
-- **CSS3**: Styling, animations, and TRON aesthetic
+- **CSS3**: Styling, animations, and neon aesthetic
 - **Vanilla JavaScript**: Game rendering, mouse interaction, animations
 
 ## Visual Design Specifications
 
-### Color Palette (TRON-Inspired)
+### Color Palette
 ```
 Background:     #0a0a0a (near-black with subtle reflection)
 Grid Lines:     #1a1a2e (dark blue-gray, subtle)
@@ -184,7 +184,7 @@ borderline/
 ├── static/
 │   ├── css/
 │   │   ├── main.css           # Base styles
-│   │   ├── tron.css           # TRON aesthetic styles
+│   │   ├── tron.css           # Neon aesthetic styles
 │   │   └── animations.css     # Keyframe animations
 │   ├── js/
 │   │   ├── game.js            # Main game controller
@@ -214,7 +214,7 @@ borderline/
 - Turn-based play for Human vs Human
 
 ### Phase 2: Visuals
-- TRON aesthetic CSS
+- Neon aesthetic CSS
 - Glowing effects
 - Piece hover previews
 - Turn indicator
@@ -383,7 +383,7 @@ class DiceAnimation {
 }
 ```
 
-### CSS TRON Effects (tron.css)
+### CSS Neon Effects (tron.css)
 ```css
 body {
   background: #0a0a0a;
@@ -542,7 +542,7 @@ body {
    - Select game mode
    - Click pieces to select
    - Click board to place
-   - Watch the TRON-style battle unfold!
+   - Watch the neon battle unfold!
 
 ---
 

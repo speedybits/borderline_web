@@ -1,4 +1,4 @@
-/* TRON-Inspired Aesthetic CSS */
+/* Neon Aesthetic CSS */
 
 :root {
     --bg-black: #0a0a0a;
@@ -88,8 +88,9 @@ body {
     color: var(--blue-neon);
 }
 
-/* Player Sidebars */
-.red-sidebar {
+/* Player Sidebars and Pieces Bars */
+.red-sidebar,
+.player-pieces-bar.red-sidebar {
     border-color: var(--red-neon);
     background: rgba(255, 0, 85, 0.05);
     box-shadow: 0 0 20px rgba(255, 0, 85, 0.2);
@@ -105,7 +106,8 @@ body {
     color: var(--red-neon);
 }
 
-.blue-sidebar {
+.blue-sidebar,
+.player-pieces-bar.blue-sidebar {
     border-color: var(--blue-neon);
     background: rgba(0, 212, 255, 0.05);
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
@@ -127,28 +129,50 @@ body {
     transition: all 0.3s ease;
 }
 
-.red-sidebar .piece-preview {
+.red-sidebar .piece-preview,
+.red-sidebar .hand-piece {
     border-color: var(--red-neon);
     box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
 }
 
 .red-sidebar .piece-preview:hover,
-.red-sidebar .piece-preview.selected {
+.red-sidebar .piece-preview.selected,
+.red-sidebar .hand-piece:hover,
+.red-sidebar .hand-piece.selected {
     box-shadow:
         0 0 15px var(--red-neon),
         0 0 30px var(--red-neon);
 }
 
-.blue-sidebar .piece-preview {
+.blue-sidebar .piece-preview,
+.blue-sidebar .hand-piece {
     border-color: var(--blue-neon);
     box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
 
 .blue-sidebar .piece-preview:hover,
-.blue-sidebar .piece-preview.selected {
+.blue-sidebar .piece-preview.selected,
+.blue-sidebar .hand-piece:hover,
+.blue-sidebar .hand-piece.selected {
     box-shadow:
         0 0 15px var(--blue-neon),
         0 0 30px var(--blue-neon);
+}
+
+.pieces-count-badge.red-count {
+    border-color: var(--red-neon);
+    color: var(--red-neon);
+    background: rgba(255, 0, 85, 0.15);
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+    text-shadow: 0 0 10px var(--red-neon);
+}
+
+.pieces-count-badge.blue-count {
+    border-color: var(--blue-neon);
+    color: var(--blue-neon);
+    background: rgba(0, 212, 255, 0.15);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+    text-shadow: 0 0 10px var(--blue-neon);
 }
 
 .piece-power {
@@ -165,12 +189,12 @@ body {
     box-shadow:
         0 0 30px rgba(0, 255, 136, 0.2),
         inset 0 0 50px rgba(0, 0, 0, 0.5),
-        /* Red home row indicator (bottom) */
-        inset 0 -3px 0 0 var(--red-neon),
-        inset 0 -3px 10px 0 rgba(255, 0, 85, 0.5),
-        /* Blue home row indicator (top) */
-        inset 0 3px 0 0 var(--blue-neon),
-        inset 0 3px 10px 0 rgba(0, 212, 255, 0.5);
+        /* Red home row indicator (top - row 0) */
+        inset 0 3px 0 0 var(--red-neon),
+        inset 0 3px 10px 0 rgba(255, 0, 85, 0.5),
+        /* Blue home row indicator (bottom - row 7) */
+        inset 0 -3px 0 0 var(--blue-neon),
+        inset 0 -3px 10px 0 rgba(0, 212, 255, 0.5);
 }
 
 /* Dice Zone */
@@ -261,7 +285,7 @@ body {
     color: var(--green-accent);
 }
 
-/* Scrollbar TRON Styling */
+/* Scrollbar Neon Styling */
 ::-webkit-scrollbar-thumb {
     background: var(--green-accent);
     box-shadow: 0 0 10px var(--green-accent);
@@ -374,4 +398,329 @@ body {
         rgba(255, 255, 255, 0.02) 100%
     );
     pointer-events: none;
+}
+
+/* Confirm Buttons Neon Style */
+.confirm-btn {
+    border-color: var(--green-accent);
+    color: var(--green-accent);
+    text-shadow: 0 0 10px var(--green-accent);
+    box-shadow:
+        0 0 20px var(--green-accent),
+        inset 0 0 10px rgba(0, 255, 136, 0.2);
+    animation: pulse-glow 2s infinite;
+}
+
+.confirm-btn:hover {
+    box-shadow:
+        0 0 30px var(--green-accent),
+        inset 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
+/* Cancel Button Red Variant */
+.cancel-btn {
+    border-color: var(--red-neon);
+    color: var(--red-neon);
+    text-shadow: 0 0 10px var(--red-neon);
+    box-shadow:
+        0 0 20px var(--red-neon),
+        inset 0 0 10px rgba(255, 0, 85, 0.2);
+    animation: pulse-glow-red 2s infinite;
+}
+
+.cancel-btn:hover {
+    box-shadow:
+        0 0 30px var(--red-neon),
+        inset 0 0 15px rgba(255, 0, 85, 0.3);
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow:
+            0 0 20px var(--green-accent),
+            inset 0 0 10px rgba(0, 255, 136, 0.2);
+    }
+    50% {
+        box-shadow:
+            0 0 30px var(--green-accent),
+            inset 0 0 15px rgba(0, 255, 136, 0.3);
+    }
+}
+
+@keyframes pulse-glow-red {
+    0%, 100% {
+        box-shadow:
+            0 0 20px var(--red-neon),
+            inset 0 0 10px rgba(255, 0, 85, 0.2);
+    }
+    50% {
+        box-shadow:
+            0 0 30px var(--red-neon),
+            inset 0 0 15px rgba(255, 0, 85, 0.3);
+    }
+}
+
+/* =================================
+   REPLAY MODE STYLING
+   ================================= */
+
+.replay-controls {
+    background: rgba(10, 10, 10, 0.95);
+    border: 2px solid var(--green-accent);
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin: 5px auto;
+    width: 480px;
+    max-width: 100%;
+    box-shadow:
+        0 0 20px var(--green-accent),
+        inset 0 0 20px rgba(0, 255, 136, 0.1);
+    position: relative;
+    z-index: 10;
+}
+
+.replay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--grid-line);
+    margin-bottom: 8px;
+}
+
+.replay-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--green-accent);
+    text-shadow: 0 0 15px var(--green-accent);
+    letter-spacing: 2px;
+}
+
+.replay-close-btn {
+    background: transparent;
+    border: 2px solid var(--red-neon);
+    color: var(--red-neon);
+    font-size: 1.2rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
+}
+
+.replay-close-btn:hover {
+    background: var(--red-neon);
+    color: var(--bg-black);
+    box-shadow:
+        0 0 20px var(--red-neon),
+        0 0 40px var(--red-neon);
+}
+
+.replay-upload-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+}
+
+.replay-playback-section {
+    padding: 5px;
+}
+
+.replay-controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 5px;
+}
+
+.replay-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.replay-btn {
+    background: rgba(0, 255, 136, 0.1);
+    border: 2px solid var(--green-accent);
+    color: var(--green-accent);
+    font-size: 1rem;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Orbitron', sans-serif;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.replay-btn:hover:not(:disabled) {
+    background: rgba(0, 255, 136, 0.2);
+    box-shadow:
+        0 0 20px var(--green-accent),
+        0 0 40px var(--green-accent);
+    transform: translateY(-2px);
+}
+
+.replay-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.replay-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.upload-btn {
+    font-size: 1rem;
+    padding: 10px 20px;
+}
+
+.replay-slider-container {
+    padding: 0 5px;
+    margin-top: -3px;
+}
+
+.replay-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--grid-line);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.replay-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--green-accent);
+    cursor: pointer;
+    box-shadow: 0 0 15px var(--green-accent);
+    transition: all 0.2s ease;
+}
+
+.replay-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 25px var(--green-accent);
+}
+
+.replay-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--green-accent);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 15px var(--green-accent);
+    transition: all 0.2s ease;
+}
+
+.replay-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 25px var(--green-accent);
+}
+
+.replay-progress {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    white-space: nowrap;
+}
+
+.replay-progress #current-move {
+    color: var(--green-accent);
+    text-shadow: 0 0 10px var(--green-accent);
+    font-weight: 700;
+}
+
+.replay-speed-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.replay-speed-control label {
+    color: var(--text-light);
+    font-size: 0.85rem;
+}
+
+.speed-btn {
+    background: rgba(0, 212, 255, 0.1);
+    border: 2px solid var(--blue-neon);
+    color: var(--blue-neon);
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.speed-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    box-shadow: 0 0 20px var(--blue-neon);
+}
+
+.speed-btn.active {
+    background: var(--blue-neon);
+    color: var(--bg-black);
+    box-shadow:
+        0 0 20px var(--blue-neon),
+        0 0 40px var(--blue-neon);
+}
+
+.drop-zone {
+    width: 100%;
+    max-width: 500px;
+    padding: 30px;
+    border: 2px dashed var(--green-accent);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.drop-zone p {
+    margin: 0;
+    color: var(--text-light);
+    font-family: 'Orbitron', sans-serif;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: var(--green-accent);
+    background: rgba(0, 255, 136, 0.15);
+    box-shadow:
+        0 0 30px rgba(0, 255, 136, 0.3),
+        inset 0 0 30px rgba(0, 255, 136, 0.1);
+}
+
+.drop-zone.drag-over p {
+    color: var(--green-accent);
+    text-shadow: 0 0 10px var(--green-accent);
+}
+
+/* Secondary Menu Button Style */
+.menu-btn.secondary {
+    border-color: var(--amber);
+    color: var(--amber);
+    box-shadow: 0 0 10px var(--amber);
+}
+
+.menu-btn.secondary:hover {
+    background: var(--amber);
+    color: var(--bg-black);
+    box-shadow:
+        0 0 20px var(--amber),
+        0 0 40px var(--amber),
+        inset 0 0 10px var(--bg-black);
 }

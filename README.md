@@ -1,6 +1,6 @@
 # Borderline
 
-A strategic board game with AI opponents and a stunning TRON-inspired GUI.
+A strategic board game with AI opponents and a stunning neon-themed GUI.
 
 ## Overview
 
@@ -21,7 +21,7 @@ Borderline is a two-player strategy game played on an 8×6 grid where players pl
 
 ### Graphics Modes
 - **ASCII Terminal**: Classic command-line interface
-- **TRON GUI**: Web-based graphical interface with glowing neon aesthetics
+- **Web GUI**: Web-based graphical interface with glowing neon aesthetics
 
 ## Installation
 
@@ -53,7 +53,7 @@ python3 borderline_gpt.py --blue_random
 ```
 Watch Red AI demolish random Blue moves.
 
-### GUI Mode (TRON Edition)
+### GUI Mode
 
 **Launch web server**:
 ```bash
@@ -127,7 +127,7 @@ borderline/
 ├── static/
 │   ├── css/
 │   │   ├── main.css           # Base styles
-│   │   └── tron.css           # TRON aesthetic
+│   │   └── tron.css           # Neon aesthetic
 │   └── js/
 │       ├── game.js            # Game controller
 │       ├── renderer.js        # Canvas rendering
@@ -249,7 +249,7 @@ Edit CSS files in `static/css/`:
 - `main.css`: Layout and structure
 - `tron.css`: Colors, glows, and animations
 
-Color palette defined in `tron.css`:
+Color palette defined in the CSS:
 ```css
 --bg-black: #0a0a0a
 --grid-line: #1a1a2e
@@ -274,8 +274,6 @@ Color palette defined in `tron.css`:
 ## Credits
 
 Game design and implementation by Mike with Claude Code.
-
-TRON visual aesthetic inspired by the classic 1982 film.
 
 ## License
 

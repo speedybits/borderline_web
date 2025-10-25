@@ -1,0 +1,875 @@
+{
+  "game_id": "20251024_082051",
+  "timestamp": "2025-10-24T08:20:51.275405",
+  "players": {
+    "R": "Red AI",
+    "B": "Blue AI"
+  },
+  "move_history": [
+    {
+      "player": "R",
+      "piece_index": 8,
+      "position": [
+        0,
+        1
+      ],
+      "rotation": 0,
+      "timestamp": "2025-10-24T08:20:51.073950",
+      "turn": 0
+    },
+    {
+      "player": "B",
+      "piece_index": 12,
+      "position": [
+        7,
+        0
+      ],
+      "rotation": 2,
+      "timestamp": "2025-10-24T08:20:51.075296",
+      "turn": 1
+    },
+    {
+      "player": "R",
+      "piece_index": 13,
+      "position": [
+        0,
+        2
+      ],
+      "rotation": 2,
+      "timestamp": "2025-10-24T08:20:51.088750",
+      "turn": 2
+    },
+    {
+      "player": "B",
+      "piece_index": 12,
+      "position": [
+        7,
+        2
+      ],
+      "rotation": 1,
+      "timestamp": "2025-10-24T08:20:51.102697",
+      "turn": 3
+    },
+    {
+      "player": "R",
+      "piece_index": 0,
+      "position": [
+        0,
+        4
+      ],
+      "rotation": 1,
+      "timestamp": "2025-10-24T08:20:51.129485",
+      "turn": 4
+    },
+    {
+      "player": "B",
+      "piece_index": 6,
+      "position": [
+        6,
+        2
+      ],
+      "rotation": 0,
+      "timestamp": "2025-10-24T08:20:51.156501",
+      "turn": 5
+    },
+    {
+      "player": "R",
+      "piece_index": 9,
+      "position": [
+        1,
+        1
+      ],
+      "rotation": 3,
+      "timestamp": "2025-10-24T08:20:51.184747",
+      "turn": 6
+    },
+    {
+      "player": "B",
+      "piece_index": 8,
+      "position": [
+        5,
+        2
+      ],
+      "rotation": 0,
+      "timestamp": "2025-10-24T08:20:51.213407",
+      "turn": 7
+    },
+    {
+      "player": "R",
+      "piece_index": 0,
+      "position": [
+        0,
+        3
+      ],
+      "rotation": 3,
+      "timestamp": "2025-10-24T08:20:51.245139",
+      "turn": 8
+    },
+    {
+      "player": "B",
+      "piece_index": 1,
+      "position": [
+        7,
+        5
+      ],
+      "rotation": 1,
+      "timestamp": "2025-10-24T08:20:51.275259",
+      "turn": 9
+    }
+  ],
+  "final_state": {
+    "game_id": "20251024_082051",
+    "turn": 10,
+    "current_player": "R",
+    "game_over": false,
+    "winner": null,
+    "board": [
+      [
+        null,
+        {
+          "player_color": "R",
+          "pips": [
+            [
+              "R",
+              "_",
+              "R"
+            ],
+            [
+              "_",
+              "R",
+              "_"
+            ],
+            [
+              "_",
+              "R",
+              "_"
+            ]
+          ],
+          "power": 2
+        },
+        {
+          "player_color": "R",
+          "pips": [
+            [
+              "R",
+              "R",
+              "R"
+            ],
+            [
+              "R",
+              "R",
+              "R"
+            ],
+            [
+              "R",
+              "R",
+              "R"
+            ]
+          ],
+          "power": 4
+        },
+        {
+          "player_color": "R",
+          "pips": [
+            [
+              "_",
+              "_",
+              "_"
+            ],
+            [
+              "R",
+              "R",
+              "R"
+            ],
+            [
+              "_",
+              "_",
+              "_"
+            ]
+          ],
+          "power": 1
+        },
+        {
+          "player_color": "R",
+          "pips": [
+            [
+              "_",
+              "_",
+              "_"
+            ],
+            [
+              "R",
+              "R",
+              "R"
+            ],
+            [
+              "_",
+              "_",
+              "_"
+            ]
+          ],
+          "power": 1
+        },
+        null
+      ],
+      [
+        null,
+        {
+          "player_color": "R",
+          "pips": [
+            [
+              "_",
+              "R",
+              "_"
+            ],
+            [
+              "R",
+              "R",
+              "R"
+            ],
+            [
+              "_",
+              "R",
+              "_"
+            ]
+          ],
+          "power": 2
+        },
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        {
+          "player_color": "B",
+          "pips": [
+            [
+              "B",
+              "_",
+              "B"
+            ],
+            [
+              "_",
+              "B",
+              "_"
+            ],
+            [
+              "B",
+              "_",
+              "B"
+            ]
+          ],
+          "power": 2
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        {
+          "player_color": "B",
+          "pips": [
+            [
+              "B",
+              "_",
+              "B"
+            ],
+            [
+              "_",
+              "B",
+              "_"
+            ],
+            [
+              "_",
+              "B",
+              "_"
+            ]
+          ],
+          "power": 2
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        {
+          "player_color": "B",
+          "pips": [
+            [
+              "_",
+              "B",
+              "_"
+            ],
+            [
+              "B",
+              "B",
+              "B"
+            ],
+            [
+              "_",
+              "B",
+              "_"
+            ]
+          ],
+          "power": 2
+        },
+        null,
+        {
+          "player_color": "B",
+          "pips": [
+            [
+              "B",
+              "B",
+              "B"
+            ],
+            [
+              "B",
+              "B",
+              "B"
+            ],
+            [
+              "B",
+              "B",
+              "B"
+            ]
+          ],
+          "power": 4
+        },
+        null,
+        null,
+        {
+          "player_color": "B",
+          "pips": [
+            [
+              "_",
+              "_",
+              "_"
+            ],
+            [
+              "B",
+              "B",
+              "B"
+            ],
+            [
+              "_",
+              "_",
+              "_"
+            ]
+          ],
+          "power": 1
+        }
+      ]
+    ],
+    "board_dimensions": {
+      "height": 8,
+      "width": 6
+    },
+    "players": {
+      "R": {
+        "name": "Red AI",
+        "pieces_remaining": [
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "_",
+                "_"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "_",
+                "_",
+                "R"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "_",
+                "_"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "_",
+                "_",
+                "R"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "_",
+                "_"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "_",
+                "_",
+                "R"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "_",
+                "R"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "_",
+                "R"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "_",
+                "R"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "R",
+                "_",
+                "R"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "_",
+                "R"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "R",
+                "_",
+                "R"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "_",
+                "R",
+                "_"
+              ],
+              [
+                "R",
+                "R",
+                "R"
+              ],
+              [
+                "_",
+                "R",
+                "_"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "R",
+                "R"
+              ],
+              [
+                "R",
+                "R",
+                "R"
+              ],
+              [
+                "R",
+                "R",
+                "R"
+              ]
+            ],
+            "power": 4
+          },
+          {
+            "player_color": "R",
+            "pips": [
+              [
+                "R",
+                "R",
+                "R"
+              ],
+              [
+                "R",
+                "R",
+                "R"
+              ],
+              [
+                "R",
+                "R",
+                "R"
+              ]
+            ],
+            "power": 4
+          }
+        ],
+        "pieces_on_board": 5
+      },
+      "B": {
+        "name": "Blue AI",
+        "pieces_remaining": [
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "B",
+                "_",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "_",
+                "B"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "B",
+                "_",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "_",
+                "B"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "B",
+                "_",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "_",
+                "B"
+              ]
+            ],
+            "power": 1
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "B",
+                "_",
+                "B"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "B",
+                "_",
+                "B"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "B",
+                "_",
+                "B"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "B",
+                "_",
+                "B"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "_",
+                "B",
+                "_"
+              ],
+              [
+                "B",
+                "B",
+                "B"
+              ],
+              [
+                "_",
+                "B",
+                "_"
+              ]
+            ],
+            "power": 2
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "B",
+                "B",
+                "B"
+              ],
+              [
+                "B",
+                "B",
+                "B"
+              ],
+              [
+                "B",
+                "B",
+                "B"
+              ]
+            ],
+            "power": 4
+          },
+          {
+            "player_color": "B",
+            "pips": [
+              [
+                "B",
+                "B",
+                "B"
+              ],
+              [
+                "B",
+                "B",
+                "B"
+              ],
+              [
+                "B",
+                "B",
+                "B"
+              ]
+            ],
+            "power": 4
+          }
+        ],
+        "pieces_on_board": 5
+      }
+    }
+  },
+  "game_over": false,
+  "winner": null
+}

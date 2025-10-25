@@ -26,6 +26,16 @@ function initializeSocketConnection() {
         updateGameState(data);
     });
 
+    socket.on('piece_pending_rotation', (data) => {
+        console.log('Piece pending rotation:', data);
+        handlePiecePendingRotation(data);
+    });
+
+    socket.on('piece_rotated', (data) => {
+        console.log('Piece rotated:', data);
+        handlePieceRotated(data);
+    });
+
     socket.on('piece_placed', (data) => {
         console.log('Piece placed:', data);
         handlePiecePlaced(data);
@@ -51,6 +61,12 @@ function initializeSocketConnection() {
     socket.on('placement_error', (data) => {
         console.log('Placement error:', data);
         addStatusMessage(`Error: ${data.message}`);
+    });
+
+    socket.on('placement_invalid', (data) => {
+        console.log('Placement invalid:', data);
+        addStatusMessage(`Invalid move: ${data.message}`);
+        // Player remains in rotation mode - can try different position/rotation or piece
     });
 
     socket.on('error', (data) => {

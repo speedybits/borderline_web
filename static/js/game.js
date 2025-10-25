@@ -6,6 +6,8 @@
 let gameState = null;
 let selectedPiece = null;
 let currentGameMode = null;
+let rotationMode = false;
+let pendingPiece = null;  // {row, col, piece, rotation}
 
 // Initialize game when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
@@ -51,6 +53,17 @@ function handleCanvasClick(e) {
     if (!cell) return;
 
     console.log(`Clicked cell: (${cell.row}, ${cell.col})`);
+
+    // If in rotation mode, check if clicking on the pending piece to rotate
+    if (rotationMode && pendingPiece) {
+        if (cell.row === pendingPiece.row && cell.col === pendingPiece.col) {
+            // Rotate the piece
+            socket.emit('rotate_piece', {});
+            return;
+        }
+        // Clicked elsewhere - allow placing a different piece
+        cancelPlacement();
+    }
 
     // Get selected piece index (defaults to 0 if none selected)
     const pieceIndex = window.getSelectedPieceIndex ? window.getSelectedPieceIndex() : 0;
@@ -139,6 +152,20 @@ function handlePiecePlaced(data) {
 
                 // Animate dice roll
                 renderer.animateDiceRoll(combat.attacker_roll, combat.defender_roll);
+
+                // Display removed pieces information
+                if (data.removed_pieces && data.removed_pieces.length > 0) {
+                    const combatLosses = data.removed_pieces.filter(p => p.reason === 'combat_loss');
+                    const disconnected = data.removed_pieces.filter(p => p.reason === 'disconnected');
+
+                    if (combatLosses.length > 0) {
+                        addStatusMessage(`${combatLosses.length} piece(s) destroyed in combat`);
+                    }
+
+                    if (disconnected.length > 0) {
+                        addStatusMessage(`${disconnected.length} piece(s) removed (disconnected from home)`);
+                    }
+                }
             } else {
                 addStatusMessage(
                     `${data.piece.color} placed piece at (${data.row},${data.col})`
@@ -179,8 +206,7 @@ function updateTurnIndicator(player) {
 }
 
 function updatePieceCounts(redCount, blueCount) {
-    document.getElementById('red-pieces-count').textContent = redCount;
-    document.getElementById('blue-pieces-count').textContent = blueCount;
+    // Piece counts removed - individual piece groups show "Nx" instead
 }
 
 function updateTurnNumber(turnCount) {
@@ -226,8 +252,119 @@ function updateDisplay() {
     }
 }
 
+function handlePiecePendingRotation(data) {
+    console.log('Piece pending rotation:', data);
+
+    // Enter rotation mode
+    rotationMode = true;
+    pendingPiece = {
+        row: data.row,
+        col: data.col,
+        piece: data.piece,
+        rotation: data.rotation
+    };
+
+    // Draw piece on board (without adding to game state yet)
+    if (renderer) {
+        renderer.drawBoard(gameState.board);
+        renderer.drawPiece(data.piece, data.col, data.row);
+    }
+
+    // Show OK button
+    showConfirmButton();
+
+    addStatusMessage('Click piece to rotate, or click OK to confirm');
+}
+
+function handlePieceRotated(data) {
+    console.log('Piece rotated:', data);
+
+    // Update pending piece with new rotation
+    pendingPiece = {
+        row: data.row,
+        col: data.col,
+        piece: data.piece,
+        rotation: data.rotation
+    };
+
+    // Redraw board with rotated piece
+    if (renderer) {
+        renderer.drawBoard(gameState.board);
+        renderer.drawPiece(data.piece, data.col, data.row);
+    }
+
+    addStatusMessage(`Rotated to ${data.rotation}°`);
+}
+
+function confirmPlacement() {
+    if (!rotationMode || !pendingPiece) return;
+
+    // Send confirmation to server
+    socket.emit('confirm_placement', {});
+
+    // Clear rotation mode
+    rotationMode = false;
+    pendingPiece = null;
+
+    // Hide buttons
+    hideConfirmButton();
+}
+
+function cancelPlacement() {
+    if (!rotationMode || !pendingPiece) return;
+
+    // Clear rotation mode
+    rotationMode = false;
+    pendingPiece = null;
+
+    // Redraw board without pending piece
+    if (renderer && gameState) {
+        renderer.drawBoard(gameState.board);
+    }
+
+    // Hide buttons
+    hideConfirmButton();
+
+    addStatusMessage('Placement cancelled - select a new piece');
+}
+
+function showConfirmButton() {
+    let container = document.getElementById('confirm-button-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'confirm-button-container';
+        container.className = 'confirm-button-container';
+
+        const okBtn = document.createElement('button');
+        okBtn.id = 'confirm-btn';
+        okBtn.className = 'confirm-btn';
+        okBtn.textContent = 'OK';
+        okBtn.onclick = confirmPlacement;
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.id = 'cancel-btn';
+        cancelBtn.className = 'confirm-btn cancel-btn';
+        cancelBtn.textContent = 'CANCEL';
+        cancelBtn.onclick = cancelPlacement;
+
+        container.appendChild(okBtn);
+        container.appendChild(cancelBtn);
+        document.querySelector('.board-container').appendChild(container);
+    }
+    container.classList.remove('hidden');
+}
+
+function hideConfirmButton() {
+    const container = document.getElementById('confirm-button-container');
+    if (container) {
+        container.classList.add('hidden');
+    }
+}
+
 // Export functions for HTML inline handlers
 window.handleGameStarted = handleGameStarted;
 window.updateGameState = updateGameState;
 window.handlePiecePlaced = handlePiecePlaced;
+window.handlePiecePendingRotation = handlePiecePendingRotation;
+window.handlePieceRotated = handlePieceRotated;
 window.addStatusMessage = addStatusMessage;

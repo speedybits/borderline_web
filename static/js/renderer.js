@@ -1,5 +1,5 @@
 /**
- * Canvas Renderer with TRON Aesthetics
+ * Canvas Renderer with Neon Aesthetics
  * Handles all drawing operations with glowing effects
  */
 
@@ -13,7 +13,7 @@ class BoardRenderer {
         this.pipSize = 24;
         this.pipGap = 2;
 
-        // TRON Colors
+        // Neon Colors
         this.colors = {
             background: '#0a0a0a',
             grid: '#1a1a2e',

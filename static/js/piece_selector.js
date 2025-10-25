@@ -6,10 +6,16 @@
 let selectedPieceIndex = null;
 
 function renderPiecePools(gameState) {
-    if (!gameState) return;
+    console.log('renderPiecePools called with:', gameState);
+    if (!gameState) {
+        console.warn('No game state provided to renderPiecePools');
+        return;
+    }
 
     // Only render pieces for human players
     const currentPlayer = gameState.current_player;
+
+    console.log('Rendering pieces - red:', gameState.red_pieces?.length, 'blue:', gameState.blue_pieces?.length);
 
     // Render red pieces (always show for human vs human, or if red is current player in human vs AI)
     renderPlayerPieces('R', gameState.red_pieces, currentPlayer === 'R');
@@ -21,26 +27,76 @@ function renderPiecePools(gameState) {
 function renderPlayerPieces(color, pieces, isCurrentPlayer) {
     const poolId = color === 'R' ? 'red-pieces-pool' : 'blue-pieces-pool';
     const pool = document.getElementById(poolId);
-    if (!pool) return;
+
+    console.log(`Rendering ${color} pieces:`, { poolId, poolFound: !!pool, piecesCount: pieces?.length });
+
+    if (!pool) {
+        console.error(`Pool element not found: ${poolId}`);
+        return;
+    }
+
+    if (!pieces || pieces.length === 0) {
+        console.warn(`No pieces to render for ${color}`);
+        pool.innerHTML = '<div style="color: white; padding: 10px;">No pieces</div>';
+        return;
+    }
 
     // Clear existing pieces
     pool.innerHTML = '';
 
-    // Render each piece
-    pieces.forEach((piece, index) => {
-        const pieceElement = createPieceElement(piece, index, color, isCurrentPlayer);
+    // Group identical pieces together
+    const groupedPieces = groupPiecesByPattern(pieces);
+    console.log(`${color} grouped into ${groupedPieces.length} groups`);
+
+    // Render each unique piece with count
+    groupedPieces.forEach((group, index) => {
+        const pieceElement = createGroupedPieceElement(group, color, isCurrentPlayer);
         pool.appendChild(pieceElement);
+        console.log(`Added ${color} piece group ${index + 1}/${groupedPieces.length}`);
     });
 }
 
-function createPieceElement(piece, index, color, isCurrentPlayer) {
+function groupPiecesByPattern(pieces) {
+    const groups = [];
+    const processedIndices = new Set();
+
+    pieces.forEach((piece, index) => {
+        if (processedIndices.has(index)) return;
+
+        // Find all pieces with identical pip patterns
+        const identicalIndices = [index];
+        const pattern = JSON.stringify(piece.pips);
+
+        for (let i = index + 1; i < pieces.length; i++) {
+            if (!processedIndices.has(i) && JSON.stringify(pieces[i].pips) === pattern) {
+                identicalIndices.push(i);
+                processedIndices.add(i);
+            }
+        }
+
+        processedIndices.add(index);
+
+        groups.push({
+            piece: piece,
+            indices: identicalIndices,
+            count: identicalIndices.length
+        });
+    });
+
+    return groups;
+}
+
+function createGroupedPieceElement(group, color, isCurrentPlayer) {
     const pieceDiv = document.createElement('div');
     pieceDiv.className = 'hand-piece';
-    pieceDiv.dataset.pieceIndex = index;
+
+    // Store all indices that belong to this group
+    pieceDiv.dataset.groupIndices = JSON.stringify(group.indices);
     pieceDiv.dataset.color = color;
 
-    // Add selection state
-    if (isCurrentPlayer && selectedPieceIndex === index) {
+    // Check if any piece in this group is selected
+    const isGroupSelected = isCurrentPlayer && group.indices.includes(selectedPieceIndex);
+    if (isGroupSelected) {
         pieceDiv.classList.add('selected');
     }
 
@@ -59,7 +115,7 @@ function createPieceElement(piece, index, color, isCurrentPlayer) {
             pip.className = 'piece-pip';
 
             // Check if this position has a pip
-            if (piece.pips[row][col] === color) {
+            if (group.piece.pips[row][col] === color) {
                 pip.classList.add('pip-filled');
                 pip.classList.add(color === 'R' ? 'pip-red' : 'pip-blue');
             } else {
@@ -72,18 +128,42 @@ function createPieceElement(piece, index, color, isCurrentPlayer) {
 
     pieceDiv.appendChild(grid);
 
-    // Add power indicator
+    // Add power and count indicator
+    const infoContainer = document.createElement('div');
+    infoContainer.className = 'piece-info';
+
     const powerLabel = document.createElement('div');
     powerLabel.className = 'piece-power';
-    powerLabel.textContent = `PWR: ${piece.power}`;
-    pieceDiv.appendChild(powerLabel);
+    powerLabel.textContent = `PWR: ${group.piece.power}`;
+    infoContainer.appendChild(powerLabel);
+
+    // Add count label if more than one
+    if (group.count > 1) {
+        const countLabel = document.createElement('div');
+        countLabel.className = 'piece-count';
+        countLabel.textContent = `${group.count}x`;
+        infoContainer.appendChild(countLabel);
+    }
+
+    pieceDiv.appendChild(infoContainer);
 
     // Add click handler for selection (only if current player)
     if (isCurrentPlayer) {
-        pieceDiv.addEventListener('click', () => selectPiece(index, color));
+        pieceDiv.addEventListener('click', () => selectPieceFromGroup(group, color));
     }
 
     return pieceDiv;
+}
+
+function selectPieceFromGroup(group, color) {
+    // Only allow selection if it's this color's turn
+    if (!gameState || gameState.current_player !== color) {
+        return;
+    }
+
+    // Select the first available piece from the group
+    const firstAvailableIndex = group.indices[0];
+    selectPiece(firstAvailableIndex, color);
 }
 
 function selectPiece(index, color) {
