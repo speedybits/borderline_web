@@ -119,8 +119,8 @@ http://localhost:5000
 
 ```
 borderline/
-├── borderline_gpt.py          # Main game logic and AI
-├── gui_server.py               # Flask web server
+├── borderline_gpt.py          # Game engine with JSON API
+├── gui_server.py               # Flask web server (uses API)
 ├── optimize_vs_random.py       # Strategy benchmarking
 ├── templates/
 │   └── index.html             # Web GUI interface
@@ -132,8 +132,97 @@ borderline/
 │       ├── game.js            # Game controller
 │       ├── renderer.js        # Canvas rendering
 │       └── socket_handler.js  # Real-time communication
+├── API.md                     # Complete API documentation
+├── API_SUMMARY.md             # API quick reference
+├── api_example.py             # API usage examples
+├── piece_management_example.py # Piece management demos
+├── test_complete_api.py       # Comprehensive API tests
 ├── GUI_VERSION.md             # GUI design specification
 └── README.md                  # This file
+```
+
+## API & Extensibility
+
+Borderline features a comprehensive **chess-engine-style JSON API** that separates game logic from presentation. This enables multiple frontends, AI development, replay systems, and dynamic piece management.
+
+### Core API
+
+**12 API Methods:**
+- `execute_move()` - Execute moves via standard JSON format
+- `get_game_state()` - Get complete game state
+- `get_valid_moves()` - Query all legal moves (for AI development)
+- `export_game()` / `replay_game()` - Save and replay games
+- `get_move_history()` - Access complete move history
+- **Piece Management** (6 methods) - Add, remove, create custom pieces dynamically
+
+### Quick Start
+
+```python
+from borderline_gpt import BorderlineGPT
+
+# Create game
+game = BorderlineGPT()
+
+# Play a turn
+move = {
+    "player": "R",
+    "piece_index": 0,
+    "position": [0, 3],
+    "rotation": 0
+}
+
+result = game.execute_move(move)
+if result['valid']:
+    print("Move executed!")
+    for event in result['events']:
+        print(f"Event: {event['type']}")
+
+# Save game
+game.export_game("my_game.json")
+```
+
+### API Benefits
+
+- ✅ **Multiple Frontends** - Web, CLI, desktop, mobile all use same engine
+- ✅ **AI Development** - Standard interface for creating AI engines
+- ✅ **Replay System** - Games saved as human-readable JSON
+- ✅ **Dynamic Pieces** - Add/remove/create pieces during gameplay
+- ✅ **Extensibility** - Easy to add new piece types and game modes
+
+### Documentation
+
+- **API.md** - Complete API reference (920 lines)
+- **API_SUMMARY.md** - Quick reference with examples
+- **api_example.py** - Working demonstrations
+- **piece_management_example.py** - Advanced use cases
+- **test_complete_api.py** - Comprehensive test suite
+
+### Example Use Cases
+
+**Create AI Player:**
+```python
+game = BorderlineGPT()
+while not game.game_over:
+    valid_moves = game.get_valid_moves()
+    move = my_ai_choose_best(valid_moves)
+    result = game.execute_move(move)
+```
+
+**Gift Pieces (Game Modes):**
+```python
+# Gift random piece every 5 turns
+if turn % 5 == 0:
+    result = game.gift_random_piece(current_player)
+```
+
+**Custom Pieces:**
+```python
+# Create super piece
+result = game.create_custom_piece('R', [
+    [0,0], [0,1], [0,2],
+    [1,0], [1,1], [1,2],
+    [2,0], [2,1], [2,2]
+])  # 9-pip block
 ```
 
 ## Development
@@ -192,21 +281,37 @@ TRON visual aesthetic inspired by the classic 1982 film.
 
 This project is for educational and entertainment purposes.
 
+## Recent Enhancements ✅
+
+**JSON API System** (Completed):
+- ✅ Chess-engine-style API with 12 methods
+- ✅ Replay system with JSON export/import
+- ✅ Dynamic piece management (6 methods)
+- ✅ Multiple frontend support
+- ✅ AI development interface
+- ✅ Complete documentation (1200+ lines)
+
+**Architecture Improvements** (Completed):
+- ✅ Separated game logic from presentation
+- ✅ GUI refactored to use API (no duplicate logic)
+- ✅ Event-based system for animations
+- ✅ Comprehensive test suite
+
 ## Future Enhancements
 
-See `GUI_VERSION.md` for planned features:
+See `GUI_VERSION.md` for planned GUI features:
 - Phase 2: Enhanced visuals and animations
 - Phase 3: Advanced animations (piece movement, combat effects)
 - Phase 4: AI integration improvements
 - Phase 5: Sound effects, drag-and-drop, mobile support
 
 Planned features:
-- Tournament mode
-- Replay system
+- Tournament mode (API ready)
+- Replay viewer (API supports it)
 - Strategy editor
 - Online multiplayer
 - Achievement system
-- Custom piece designs
+- Community piece designs (API supports custom pieces)
 
 ---
 
