@@ -321,6 +321,11 @@ class ReplayController {
         // Update UI
         document.getElementById('current-move').textContent = this.currentMove;
         document.getElementById('replay-slider').value = this.currentMove;
+
+        // Update game state visualization
+        if (data.game_state && typeof updateGameState === 'function') {
+            updateGameState(data.game_state);
+        }
     }
 
     onReplayStepBack(data) {
@@ -331,6 +336,11 @@ class ReplayController {
         // Update UI
         document.getElementById('current-move').textContent = this.currentMove;
         document.getElementById('replay-slider').value = this.currentMove;
+
+        // Update game state visualization
+        if (data.game_state && typeof updateGameState === 'function') {
+            updateGameState(data.game_state);
+        }
     }
 
     onReplayGoto(data) {
@@ -341,6 +351,11 @@ class ReplayController {
         // Update UI
         document.getElementById('current-move').textContent = this.currentMove;
         document.getElementById('replay-slider').value = this.currentMove;
+
+        // Update game state visualization
+        if (data.game_state && typeof updateGameState === 'function') {
+            updateGameState(data.game_state);
+        }
     }
 
     onReplayPlaying(data) {
