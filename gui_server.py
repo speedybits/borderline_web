@@ -19,6 +19,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 current_game = None
 game_sessions = {}
 pending_placement = None  # Stores {piece, row, col, rotation, piece_index}
+replay_state = None  # Stores {game: BorderlineGPT, move_history: [], current_move: int, is_playing: bool}
 
 @app.route('/')
 def index():
@@ -411,6 +412,216 @@ def combat_to_dict(combat):
         'defender_color': combat['defender_color'],
         'winner': combat['winner']
     }
+
+# ==================== REPLAY MODE ====================
+
+@socketio.on('load_replay')
+def handle_load_replay(data):
+    """Load a game from JSON file for replay"""
+    global replay_state, current_game
+
+    filename = data.get('filename', 'replay_demo.json')
+
+    try:
+        # Load the game
+        replayed_game = BorderlineGPT.replay_game(filename)
+        move_history = replayed_game.get_move_history()
+
+        # Create fresh game for step-by-step replay
+        fresh_game = BorderlineGPT()
+
+        replay_state = {
+            'game': fresh_game,
+            'move_history': move_history,
+            'current_move': -1,  # Start before first move
+            'is_playing': False,
+            'total_moves': len(move_history)
+        }
+
+        # Set as current game for rendering
+        current_game = fresh_game
+
+        # Send initial state
+        emit('replay_loaded', {
+            'success': True,
+            'total_moves': len(move_history),
+            'game_state': api_state_to_gui_state(fresh_game.get_game_state()),
+            'message': f'Loaded replay with {len(move_history)} moves'
+        }, broadcast=True)
+
+    except Exception as e:
+        emit('replay_error', {
+            'success': False,
+            'message': f'Failed to load replay: {str(e)}'
+        })
+
+@socketio.on('replay_step_forward')
+def handle_replay_step_forward():
+    """Execute next move in replay"""
+    global replay_state, current_game
+
+    if not replay_state:
+        emit('replay_error', {'message': 'No replay loaded'})
+        return
+
+    if replay_state['current_move'] >= replay_state['total_moves'] - 1:
+        emit('replay_error', {'message': 'Already at end of replay'})
+        return
+
+    # Execute next move
+    replay_state['current_move'] += 1
+    move = replay_state['move_history'][replay_state['current_move']]
+
+    result = replay_state['game'].execute_move(move)
+
+    if result['valid']:
+        # Extract events for animation
+        combat_result = None
+        removed_pieces = []
+
+        for event in result['events']:
+            if event['type'] == 'combat':
+                combat_result = event['combat_data']
+            elif event['type'] == 'piece_removed':
+                removed_pieces.append({
+                    'row': event['row'],
+                    'col': event['col'],
+                    'piece': event['piece'],
+                    'reason': event['reason']
+                })
+
+        # Get placed piece
+        placed_piece = None
+        for event in result['events']:
+            if event['type'] == 'piece_placed':
+                placed_piece = event['piece']
+                break
+
+        emit('replay_step', {
+            'move_number': replay_state['current_move'] + 1,
+            'total_moves': replay_state['total_moves'],
+            'move': move,
+            'row': move['position'][0],
+            'col': move['position'][1],
+            'piece': placed_piece,
+            'combat': combat_to_dict(combat_result),
+            'removed_pieces': removed_pieces,
+            'game_state': api_state_to_gui_state(result['game_state']),
+            'game_over': result['game_over'],
+            'winner': result['winner']
+        }, broadcast=True)
+    else:
+        emit('replay_error', {'message': f'Move failed: {result["reason"]}'})
+
+@socketio.on('replay_step_back')
+def handle_replay_step_back():
+    """Go back one move in replay"""
+    global replay_state, current_game
+
+    if not replay_state:
+        emit('replay_error', {'message': 'No replay loaded'})
+        return
+
+    if replay_state['current_move'] < 0:
+        emit('replay_error', {'message': 'Already at start of replay'})
+        return
+
+    # Reset to start and replay up to current_move - 1
+    replay_state['current_move'] -= 1
+    target_move = replay_state['current_move']
+
+    # Create fresh game
+    fresh_game = BorderlineGPT()
+
+    # Replay moves up to target
+    for i in range(target_move + 1):
+        move = replay_state['move_history'][i]
+        fresh_game.execute_move(move)
+
+    replay_state['game'] = fresh_game
+    current_game = fresh_game
+
+    emit('replay_step_back', {
+        'move_number': replay_state['current_move'] + 1,
+        'total_moves': replay_state['total_moves'],
+        'game_state': api_state_to_gui_state(fresh_game.get_game_state())
+    }, broadcast=True)
+
+@socketio.on('replay_goto')
+def handle_replay_goto(data):
+    """Jump to specific move in replay"""
+    global replay_state, current_game
+
+    if not replay_state:
+        emit('replay_error', {'message': 'No replay loaded'})
+        return
+
+    target_move = data.get('move_number', 0) - 1  # Convert to 0-indexed
+
+    if target_move < -1 or target_move >= replay_state['total_moves']:
+        emit('replay_error', {'message': 'Invalid move number'})
+        return
+
+    # Create fresh game and replay to target
+    fresh_game = BorderlineGPT()
+
+    for i in range(target_move + 1):
+        move = replay_state['move_history'][i]
+        fresh_game.execute_move(move)
+
+    replay_state['game'] = fresh_game
+    replay_state['current_move'] = target_move
+    current_game = fresh_game
+
+    emit('replay_goto', {
+        'move_number': target_move + 1,
+        'total_moves': replay_state['total_moves'],
+        'game_state': api_state_to_gui_state(fresh_game.get_game_state())
+    }, broadcast=True)
+
+@socketio.on('replay_play')
+def handle_replay_play():
+    """Start auto-playing replay"""
+    global replay_state
+
+    if not replay_state:
+        emit('replay_error', {'message': 'No replay loaded'})
+        return
+
+    replay_state['is_playing'] = True
+    emit('replay_playing', {'is_playing': True}, broadcast=True)
+
+    # Auto-advance will be handled by client with replay_step_forward
+
+@socketio.on('replay_pause')
+def handle_replay_pause():
+    """Pause auto-playing replay"""
+    global replay_state
+
+    if not replay_state:
+        emit('replay_error', {'message': 'No replay loaded'})
+        return
+
+    replay_state['is_playing'] = False
+    emit('replay_paused', {'is_playing': False}, broadcast=True)
+
+@socketio.on('get_replay_state')
+def handle_get_replay_state():
+    """Get current replay state"""
+    global replay_state
+
+    if not replay_state:
+        emit('replay_state', {
+            'loaded': False
+        })
+        return
+
+    emit('replay_state', {
+        'loaded': True,
+        'current_move': replay_state['current_move'] + 1,
+        'total_moves': replay_state['total_moves'],
+        'is_playing': replay_state['is_playing']
+    })
 
 if __name__ == '__main__':
     print("=" * 60)
