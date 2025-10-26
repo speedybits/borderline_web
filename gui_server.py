@@ -77,6 +77,13 @@ def handle_start_game(data):
     # Reset current player to Red (Red always starts)
     current_game.current_player = current_game.red_player
 
+    print(f"🎮 GAME INITIALIZED")
+    print(f"   Mode: {mode}")
+    print(f"   Red: {type(current_game.red_player).__name__}")
+    print(f"   Blue: {type(current_game.blue_player).__name__}")
+    print(f"   Starting player: {current_game.current_player.color} ({type(current_game.current_player).__name__})")
+    print(f"   Turn: {current_game.turn_count}")
+
     # Get initial game state using API
     state = get_game_state()
     emit('game_started', state, broadcast=True)
@@ -126,7 +133,25 @@ def handle_place_piece(data):
     col = data.get('col')
     piece_index = data.get('piece_index', 0)  # Default to first piece if not specified
 
-    print(f"Placement request: ({row}, {col}), piece_index={piece_index}")
+    # CRITICAL: Only allow human players to place pieces via UI
+    if not isinstance(current_game.current_player, borderline_gpt.GUIHumanPlayer):
+        print(f"❌ REJECTED PLACEMENT - Not human player's turn")
+        print(f"   Attempted placement: row={row}, col={col}, piece_index={piece_index}")
+        print(f"   Current player: {current_game.current_player.color} ({type(current_game.current_player).__name__})")
+        print(f"   Red player type: {type(current_game.red_player).__name__}")
+        print(f"   Blue player type: {type(current_game.blue_player).__name__}")
+        print(f"   Turn count: {current_game.turn_count}")
+        print(f"   Game over: {current_game.game_over}")
+        emit('placement_error', {
+            'message': f'Not your turn - AI ({current_game.current_player.color}) is playing'
+        })
+        return
+
+    print(f"✓ ACCEPTED PLACEMENT REQUEST")
+    print(f"   Player: {current_game.current_player.color} ({type(current_game.current_player).__name__})")
+    print(f"   Position: row={row}, col={col}")
+    print(f"   Piece index: {piece_index}")
+    print(f"   Turn: {current_game.turn_count}")
 
     # Check if player has pieces
     if not current_game.current_player.has_pieces():
@@ -171,10 +196,19 @@ def handle_place_piece(data):
 @socketio.on('rotate_piece')
 def handle_rotate_piece(data):
     """Handle piece rotation during placement"""
-    global pending_placement
+    global pending_placement, current_game
 
     if not pending_placement:
         emit('error', {'message': 'No piece to rotate'})
+        return
+
+    # CRITICAL: Only allow human players to rotate pieces
+    if not isinstance(current_game.current_player, borderline_gpt.GUIHumanPlayer):
+        emit('placement_error', {
+            'message': 'Not your turn - AI is playing'
+        })
+        print(f"Rejected rotation - current player is {type(current_game.current_player).__name__}, not GUIHumanPlayer")
+        pending_placement = None  # Clear the invalid pending placement
         return
 
     # Rotate the piece by 90 degrees
@@ -199,6 +233,15 @@ def handle_confirm_placement(data):
         emit('error', {'message': 'No pending placement'})
         return
 
+    # CRITICAL: Only allow human players to confirm placements
+    if not isinstance(current_game.current_player, borderline_gpt.GUIHumanPlayer):
+        emit('placement_error', {
+            'message': 'Not your turn - AI is playing'
+        })
+        print(f"Rejected confirm - current player is {type(current_game.current_player).__name__}, not GUIHumanPlayer")
+        pending_placement = None  # Clear the invalid pending placement
+        return
+
     # Get placement details
     row = pending_placement['row']
     col = pending_placement['col']
@@ -220,7 +263,18 @@ def handle_confirm_placement(data):
     }
 
     # Call game engine API - it does EVERYTHING (validation, placement, combat, victory)
+    print(f"🎯 EXECUTING MOVE")
+    print(f"   Player: {move['player']}")
+    print(f"   Position: {move['position']}")
+    print(f"   Piece index: {move['piece_index']}")
+    print(f"   Rotation: {move['rotation']} ({rotation_count * 90}°)")
+
     result = current_game.execute_move(move)
+
+    print(f"   Result: {'VALID' if result['valid'] else 'INVALID'}")
+    if result['valid']:
+        print(f"   New current player: {current_game.current_player.color} ({type(current_game.current_player).__name__})")
+        print(f"   New turn: {current_game.turn_count}")
 
     # Just broadcast the result - NO game logic here!
     if not result['valid']:
@@ -265,8 +319,9 @@ def handle_confirm_placement(data):
 
     emit('piece_placed', response, broadcast=True)
 
-    # Check if current player is AI (has choose_move method)
-    if not result['game_over'] and hasattr(current_game.current_player, 'choose_move'):
+    # Check if current player is AI (not human)
+    # CRITICAL: Use isinstance check, not hasattr, because GUIHumanPlayer also has choose_move!
+    if not result['game_over'] and not isinstance(current_game.current_player, borderline_gpt.GUIHumanPlayer):
         socketio.sleep(0.5)  # Brief pause for visualization
         process_ai_turn()
 
@@ -278,7 +333,12 @@ def process_ai_turn():
         return
 
     # Check if current player is AI (not human)
-    if hasattr(current_game.current_player, 'choose_move'):
+    # CRITICAL: Use isinstance check, not hasattr, because GUIHumanPlayer also has choose_move!
+    if not isinstance(current_game.current_player, borderline_gpt.GUIHumanPlayer):
+        print(f"🤖 AI TURN STARTING")
+        print(f"   Player: {current_game.current_player.color} ({type(current_game.current_player).__name__})")
+        print(f"   Turn: {current_game.turn_count}")
+
         # Notify that AI is thinking
         emit('ai_thinking', {
             'player': current_game.current_player.color
@@ -309,8 +369,19 @@ def process_ai_turn():
             'rotation': rotation_count
         }
 
+        print(f"🎯 AI EXECUTING MOVE")
+        print(f"   Player: {move['player']}")
+        print(f"   Position: {move['position']}")
+        print(f"   Piece index: {move['piece_index']}")
+        print(f"   Rotation: {move['rotation']} ({rotation_degrees}°)")
+
         # Execute move through API
         result = current_game.execute_move(move)
+
+        print(f"   Result: {'VALID' if result['valid'] else 'INVALID'}")
+        if result['valid']:
+            print(f"   New current player: {current_game.current_player.color} ({type(current_game.current_player).__name__})")
+            print(f"   New turn: {current_game.turn_count}")
 
         if not result['valid']:
             # This shouldn't happen with a properly functioning AI
